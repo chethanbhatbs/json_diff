@@ -1087,9 +1087,9 @@ function App() {
       return;
     }
     
+    const loadingToast = toast.loading('Generating PDF...');
+    
     try {
-      toast.info('Generating PDF... please wait');
-      
       const canvas = await html2canvas(previewRef.current, { 
         scale: 2,
         useCORS: true,
@@ -1117,10 +1117,10 @@ function App() {
       const filename = `${outputFilename || 'comparison_report'}.pdf`;
       pdf.save(filename);
       
-      toast.success(`Downloaded ${filename}`);
+      toast.success(`Downloaded ${filename}`, { id: loadingToast });
     } catch (error) {
       console.error('PDF generation error:', error);
-      toast.error('PDF generation failed - try HTML export instead');
+      toast.error('PDF generation failed - try HTML export instead', { id: loadingToast });
     }
   }, [outputFilename, previewData, summary]);
 
