@@ -624,7 +624,7 @@ function SummaryStats({ summary }) {
 }
 
 // Export Panel Component
-function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onExportGoogleSheets, outputFilename, setOutputFilename, isDownloading, user }) {
+function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, outputFilename, setOutputFilename, isDownloading, user }) {
   return (
     <div className="border rounded-lg bg-card p-4" data-testid="export-panel">
       <div className="flex items-center gap-2 mb-3">
@@ -661,15 +661,14 @@ function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onExportG
 
         <div className="pt-2 border-t">
           <Button 
-            onClick={onExportGoogleSheets} 
+            onClick={onLogin} 
             variant="outline" 
             size="sm" 
             className="w-full gap-2" 
-            disabled={!user}
             data-testid="export-gsheets-btn"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            {user ? 'Export to Google Sheets' : 'Login to Export to Google Sheets'}
+            {user ? 'Export to Google Sheets' : 'Login for Google Sheets Export'}
           </Button>
         </div>
       </div>
