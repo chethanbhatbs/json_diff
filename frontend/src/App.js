@@ -933,31 +933,50 @@ function App() {
   const handleDownload = useCallback(async () => {
     if (!downloadUrl) return;
     setIsDownloading(true);
-    addLog('Downloading Excel file...', 'info');
+    
     try {
-      // Fetch the file as a blob
-      const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error('Download failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Method 1: Try direct link download first (most reliable)
       const link = document.createElement('a');
-      link.href = url;
+      link.href = downloadUrl;
       link.download = `${outputFilename || 'comparison_report'}.xlsx`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
       
-      addLog('Excel download complete', 'success');
-      toast.success(`Downloaded ${outputFilename}.xlsx - check your Downloads folder`);
+      toast.success(`Downloading ${outputFilename || 'comparison_report'}.xlsx`, {
+        description: 'Check your browser Downloads folder',
+        duration: 5000
+      });
     } catch (error) {
-      addLog('Download failed', 'error');
-      toast.error('Download failed - try HTML export');
+      console.error('Download error:', error);
+      // Method 2: Fallback to blob download
+      try {
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error('Download failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${outputFilename || 'comparison_report'}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast.success('Download complete - check your Downloads folder');
+      } catch (blobError) {
+        console.error('Blob download error:', blobError);
+        toast.error('Download failed. Try HTML export or copy the URL: ' + downloadUrl, {
+          duration: 10000
+        });
+      }
     } finally {
       setIsDownloading(false);
     }
-  }, [downloadUrl, outputFilename, addLog]);
+  }, [downloadUrl, outputFilename]);
 
   const handleExportHtml = useCallback(() => {
     if (!previewData || !summary) return;
