@@ -1594,7 +1594,12 @@ function App() {
             {summary && (
               <section className="animate-fade-in space-y-4">
                 <SummaryStats summary={summary} />
-                <ExcelPreview previewData={previewData} previewRef={previewRef} />
+                <ExcelPreview 
+                  previewData={previewData} 
+                  previewRef={previewRef}
+                  comparisonFilter={comparisonFilter}
+                  setComparisonFilter={setComparisonFilter}
+                />
                 <div className="print:hidden">
                   <ExportPanel 
                     onDownload={handleDownload}
