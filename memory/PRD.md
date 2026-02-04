@@ -8,8 +8,10 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 2. Parse & discover structure
 3. Configure comparison (what to compare: Tools/System/Entire/Custom Path)
 4. Select specific tools if using Tools comparison
-5. Click "Compare & Generate Excel"
-6. Download Excel report with comparison results
+5. Specify custom output filename
+6. Click "Compare & Generate Excel"
+7. Download Excel report with comparison results
+8. View history of recent comparisons
 
 ## Architecture
 
@@ -23,9 +25,10 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 
 ### Frontend (React)
 - Single page application
-- Components: FileUploadZone, ProgressTerminal, SummaryPanel
+- Components: FileUploadZone, ProgressTerminal, SummaryPanel, HistoryPanel
 - Uses shadcn/UI components
 - Light theme, minimalist design
+- localStorage for comparison history
 
 ### Excel Output (openpyxl)
 - Sheets: Comparison, Differences, File1_Tools, File2_Tools
@@ -33,14 +36,16 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 - Word-level diff for description changes
 
 ## What's Been Implemented (Jan 2026)
-- ✅ JSON file upload with validation
+- ✅ JSON file upload with validation (drag & drop + click to browse)
 - ✅ Comparison type selection (Tools/System/Entire/Custom Path)
 - ✅ Tool path auto-detection
 - ✅ Tool selection with search/filter
 - ✅ Excel report generation matching Python script output
 - ✅ Progress terminal with logs
 - ✅ Summary panel with statistics
-- ✅ Download functionality
+- ✅ **Custom output filename** (new feature)
+- ✅ **Comparison history** using localStorage (new feature)
+- ✅ Blob-based file download (fixed)
 - ✅ Reset functionality
 
 ## User Personas
@@ -51,10 +56,10 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 ## Core Requirements (Static)
 - Must handle JSON files up to 10-20 MB
 - Excel output must match Python script exactly
-- Stateless tool (no authentication, no history)
+- Stateless tool (no authentication required)
 - Clear validation errors for invalid JSON
 
-## P0/P1/P2 Features
+## Prioritized Backlog
 
 ### P0 (Implemented)
 - File upload with JSON validation
@@ -62,13 +67,16 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 - System and Entire Object comparison
 - Custom path comparison
 - Download Excel report
+- Custom output filename
+- Comparison history
 
-### P1 (Backlog)
-- JSON tree view explorer with search
-- Side-by-side diff viewer in UI
-- Batch comparison of multiple file pairs
+### P1 (Next)
+- JSON tree view explorer for structure visualization
+- Side-by-side diff preview in UI before Excel generation
+- Export history
 
 ### P2 (Future)
+- Batch comparison of multiple file pairs
 - Save comparison templates
 - Export comparison as PDF
 - API-only mode for CI/CD integration
@@ -76,4 +84,4 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 ## Next Action Items
 1. Add JSON tree view explorer for structure visualization
 2. Add side-by-side diff preview in UI before Excel generation
-3. Consider adding comparison history with localStorage
+3. Consider batch comparison feature for multiple file pairs
