@@ -212,3 +212,5 @@ agent_communication:
     message: "Starting testing of JSON Comparison Tool's export and action buttons functionality."
   - agent: "testing"
     message: "Completed testing of all export and action buttons. All buttons (Excel Download, HTML Export, PDF Export, Print, and Google Sheets Login) are working correctly. Each button is clickable and triggers the expected action."
+  - agent: "testing"
+    message: "Re-tested all export buttons with a focus on specific requirements. Verified that HTML export opens in a new tab with complete data, Print shows all tables including File 1 and File 2 tools, Excel download successfully downloads files, PDF generation works correctly, and Google Sheets button doesn't cause redirect loops."
