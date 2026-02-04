@@ -1,152 +1,148 @@
 {
   "identity": {
-    "name": "E1 - The Anti-AI Designer",
-    "mission": "Create a precision instrument for developers. No fluff. No generic SaaS gradients. Pure function, high density, Swiss-style typography.",
-    "archetype": "The Laboratory",
-    "tone": "Clinical, Precise, Fast"
-  },
-  "typography": {
-    "font_family": {
-      "headings": "Space Grotesk, sans-serif",
-      "body": "Inter, sans-serif",
-      "mono": "JetBrains Mono, monospace"
-    },
-    "scale": {
-      "h1": "text-4xl font-bold tracking-tight",
-      "h2": "text-2xl font-semibold tracking-tight",
-      "h3": "text-xl font-medium",
-      "body": "text-sm leading-relaxed",
-      "small": "text-xs font-mono text-muted-foreground",
-      "label": "text-[10px] uppercase tracking-widest font-bold text-muted-foreground"
-    },
-    "weights": {
-      "normal": 400,
-      "medium": 500,
-      "bold": 700
-    }
-  },
-  "colors": {
-    "theme": "light",
-    "palette": {
-      "background": "#FFFFFF",
-      "foreground": "#09090B",
-      "card": "#FFFFFF",
-      "card_foreground": "#09090B",
-      "popover": "#FFFFFF",
-      "popover_foreground": "#09090B",
-      "primary": "#18181B",
-      "primary_foreground": "#FAFAFA",
-      "secondary": "#F4F4F5",
-      "secondary_foreground": "#18181B",
-      "muted": "#F4F4F5",
-      "muted_foreground": "#71717A",
-      "accent": "#F4F4F5",
-      "accent_foreground": "#18181B",
-      "destructive": "#EF4444",
-      "destructive_foreground": "#FAFAFA",
-      "border": "#E4E4E7",
-      "input": "#E4E4E7",
-      "ring": "#18181B",
-      "success": "#10B981",
-      "warning": "#F59E0B",
-      "info": "#3B82F6"
-    },
-    "brand_accent": "#2563EB",
-    "custom_rules": [
-      "No gradients.",
-      "Use 1px borders for definition.",
-      "Use 'zinc' scale for neutrals.",
-      "Brand accent used ONLY for active states and primary actions."
+    "name": "E1: The Anti-AI Designer",
+    "mission": "Create a high-precision, 'Linear-style' JSON comparison tool that feels like a Swiss instrument—clean, objective, and mathematically perfect.",
+    "tone": "Technical, Brutalist, High-Contrast, Minimalist",
+    "principles": [
+      "Fusion over Imitation: Mix 'Code Editor' aesthetics with 'Swiss Print' layouts",
+      "Content is King: The JSON diff is the hero; UI recedes",
+      "Negative Space: Dense data needs breathing room around it",
+      "Contrast: Functional color only. Monochrome base."
     ]
   },
-  "layout": {
-    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
-    "grid_system": "Bento Grid Mode B (High Density)",
-    "spacing": {
-      "section_gap": "gap-8",
-      "component_padding": "p-6",
-      "internal_padding": "p-4"
+  "typography": {
+    "fonts": {
+      "heading": {
+        "family": "Manrope",
+        "fallback": "sans-serif",
+        "usage": "Section headers, Modal titles, Hero text",
+        "weights": ["500", "600", "800"],
+        "install_command": "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');"
+      },
+      "body": {
+        "family": "IBM Plex Sans",
+        "fallback": "sans-serif",
+        "usage": "UI text, labels, descriptions, instructions",
+        "weights": ["400", "500"]
+      },
+      "mono": {
+        "family": "JetBrains Mono",
+        "fallback": "monospace",
+        "usage": "JSON content, diff views, file paths, IDs",
+        "weights": ["400", "500"]
+      }
     },
-    "z_index": {
-      "toast": 50,
-      "modal": 40,
-      "dropdown": 30,
-      "header": 20
-    }
+    "rules": [
+      "HEADINGS: Use 'Manrope' with tight tracking (-0.02em). Avoid 'Inter'.",
+      "BODY: Use 'IBM Plex Sans'. Legibility is paramount for technical tools.",
+      "CODE: 'JetBrains Mono' is non-negotiable for JSON.",
+      "HIERARCHY: Use font-weight and color (greyscale) over size differences."
+    ]
+  },
+  "colors": {
+    "theme_strategy": "Swiss & High-Contrast (Archetype 4)",
+    "palette": {
+      "base": {
+        "light": "#FFFFFF",
+        "dark": "#09090B"
+      },
+      "surface": {
+        "light": "#FAFAFA",
+        "dark": "#18181B"
+      },
+      "border": {
+        "light": "#E4E4E7",
+        "dark": "#27272A"
+      },
+      "primary": {
+        "light": "#18181B",
+        "dark": "#FAFAFA",
+        "description": "Anti-Brand strategy. Primary action is Black in light mode, White in dark mode."
+      },
+      "diff": {
+        "added": {
+          "text": "#15803d",
+          "bg": "#dcfce7",
+          "border": "#86efac"
+        },
+        "removed": {
+          "text": "#b91c1c",
+          "bg": "#fee2e2",
+          "border": "#fca5a5"
+        },
+        "modified": {
+          "text": "#a16207",
+          "bg": "#fef9c3",
+          "border": "#fde047"
+        }
+      }
+    },
+    "forbidden_colors": ["#7351B7", "#1B93A4"]
+  },
+  "spacing_and_layout": {
+    "scale": "Generous (2x standard). Use p-6, p-8, p-12.",
+    "grid_strategy": "Mode B: High Density Grid (for Dashboards)",
+    "rules": [
+      "BORDERS: Use 1px borders for definition. No heavy shadows.",
+      "PADDING: Containers with borders must have internal padding (p-6) to prevent text collision.",
+      "ALIGNMENT: Optical alignment. If an element has an icon, adjust padding to center visually."
+    ]
   },
   "components": {
     "buttons": {
-      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm",
-      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-      "ghost": "hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-      "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-    },
-    "inputs": {
-      "default": "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      "style": "Sharp or slightly rounded (rounded-md). No pill shapes unless it's a tag.",
+      "primary": "bg-primary text-primary-foreground hover:opacity-90 shadow-sm",
+      "secondary": "bg-background border border-input hover:bg-accent hover:text-accent-foreground"
     },
     "cards": {
-      "default": "rounded-lg border bg-card text-card-foreground shadow-sm"
+      "style": "Flat, 1px border. No shadow by default.",
+      "hover": "hover:border-primary/50 transition-colors duration-200"
     },
-    "upload_zone": {
-      "style": "border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors rounded-lg bg-muted/50 hover:bg-muted p-10 flex flex-col items-center justify-center cursor-pointer gap-4"
+    "inputs": {
+      "style": "Minimalist. bg-background border-input focus:ring-1 focus:ring-ring"
     },
-    "tree_view": {
-      "container": "font-mono text-sm overflow-auto max-h-[600px] border rounded-md p-2 bg-white",
-      "item": "flex items-center gap-2 hover:bg-accent/50 rounded px-1 py-0.5 cursor-pointer select-none",
-      "connector_line": "border-l border-muted-foreground/20 ml-2 pl-2"
-    },
-    "progress_log": {
-      "container": "bg-zinc-950 text-zinc-50 font-mono text-xs p-4 rounded-md overflow-hidden",
-      "line": "border-l-2 border-transparent hover:border-zinc-700 pl-2 py-0.5"
+    "toast": {
+      "library": "sonner",
+      "location": "bottom-right"
     }
   },
   "visual_enhancers": {
-    "shadows": "shadow-sm",
-    "borders": "border-zinc-200",
-    "radius": "rounded-md",
-    "micro_interactions": {
-      "hover": "transform transition-all duration-150 ease-in-out",
-      "active": "scale-[0.98]"
+    "glassmorphism": {
+      "header": "backdrop-blur-md bg-background/80 border-b",
+      "overlay": "backdrop-blur-sm bg-background/50"
+    },
+    "tracing_beam": {
+      "usage": "Upload Zone active state",
+      "description": "Animated gradient border for drop zones"
+    },
+    "empty_states": {
+      "description": "Use minimalist abstract geometry or monochrome illustrations."
     }
+  },
+  "image_urls": {
+    "hero_background": "https://images.unsplash.com/photo-1569293673783-9959d9882dac?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "empty_state_placeholder": "https://images.unsplash.com/photo-1729830375022-b0248100c501?crop=entropy&cs=srgb&fm=jpg&q=85"
   },
   "icons": {
     "library": "lucide-react",
-    "style": "stroke-[1.5px]",
-    "size": {
-      "sm": "h-4 w-4",
-      "md": "h-5 w-5",
-      "lg": "h-6 w-6"
-    }
+    "style": "Stroke width 1.5px or 2px. Crisp edges."
   },
-  "image_urls": [],
+  "animations": {
+    "transitions": "transition-all duration-200 ease-out",
+    "micro_interactions": "scale-95 on click, text color shift on hover"
+  },
   "instructions_to_main_agent": [
-    "1. IMPLEMENTATION ORDER: Typography > Layout Shell > Upload Component > Tree Parser > Logic > Excel Generation.",
-    "2. JSON PARSING: Use a web worker or async processing for large JSON files (10-20MB) to prevent UI freezing.",
-    "3. TREE VIEW: This is the most critical UI component. It must handle depth efficiently. Render only visible nodes if possible (virtualization) or strictly limit initial depth.",
-    "4. PROGRESS: The Excel generation simulates a python script. Show a 'Terminal' like log output for the progress steps.",
-    "5. STATE: App is stateless. If user refreshes, data is gone. Add a 'Reset' button to clear state explicitly.",
-    "6. ERROR HANDLING: If JSON is invalid, show line number and error message in a red alert box.",
-    "7. TESTING: Add data-testid to all inputs and buttons."
+    "REPLACE 'Space Grotesk' with 'Manrope' in tailwind.config.js immediately.",
+    "REPLACE 'Inter' with 'IBM Plex Sans' in tailwind.config.js immediately.",
+    "Implement the 'Swiss' color palette. Remove any 'blue' or 'purple' based primary colors. Make it monochrome.",
+    "Ensure the JSON diff view uses 'JetBrains Mono' and respects the specific Green/Red colors defined in 'colors.diff'.",
+    "Use 'sonner' for all notifications.",
+    "Add 'data-testid' to all interactive elements."
   ],
-  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
-    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
-    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
-    "Create depth through layered design elements with z-index hierarchy",
-    "Use glass-morphism effects with backdrop filters (12-24px blur)",
-    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
-    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
-    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
-    "NEVER: use AI assistant Emoji characters like 🤖 etc for icons.",
-    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
-    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
-    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
-    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
-    "Prioritize using pre-existing components from src/components/ui when applicable",
-    "Create new components that match the style and conventions of existing components when needed",
-    "Examine existing components to understand the project's component patterns before creating new ones",
-    "Components MUST use named exports (export const ComponentName = ...)",
-    "Pages MUST use default exports (export default function PageName() {...})",
-    "Use sonner for toasts. Sonner component are located in /app/frontend/src/components/ui/sonner.jsx"
+  "UNIVERSAL_GUIDELINES": [
+    "Do NOT apply universal transition (transition: all).",
+    "Do NOT center align the app container.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Every interaction needs micro-animations."
   ]
 }
