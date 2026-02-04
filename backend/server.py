@@ -293,48 +293,46 @@ def get_word_diff(text1: str, text2: str) -> Tuple[List[Dict], List[Dict]]:
         return ([{"text": text1, "type": "same"}] if text1 else [], 
                 [{"text": text2, "type": "same"}] if text2 else [])
     
-    # Check if difference is only whitespace
-    if text1.strip() == text2.strip() and text1 != text2:
+    # Check if difference is only whitespace (normalize and compare)
+    normalized1 = ' '.join(text1.split())
+    normalized2 = ' '.join(text2.split())
+    
+    if normalized1 == normalized2 and text1 != text2:
         # Whitespace-only difference - show with visible markers
-        diff1 = [{"text": text1.replace(' ', '·').replace('\t', '→').replace('\n', '↵'), "type": "removed"}]
-        diff2 = [{"text": text2.replace(' ', '·').replace('\t', '→').replace('\n', '↵'), "type": "added"}]
+        diff1 = [{"text": text1.replace('  ', '[2 spaces]').replace('\t', '[tab]').replace('\n', '[newline]'), "type": "removed"}]
+        diff2 = [{"text": text2.replace('  ', '[2 spaces]').replace('\t', '[tab]').replace('\n', '[newline]'), "type": "added"}]
         return diff1, diff2
     
-    # Character-level diff for better whitespace detection
-    matcher = difflib.SequenceMatcher(None, text1, text2)
+    # Word-level diff (splits on whitespace)
+    words1 = text1.split() if text1 else []
+    words2 = text2.split() if text2 else []
+    
+    matcher = difflib.SequenceMatcher(None, words1, words2)
     
     diff1 = []  # For file1 (shows removals)
     diff2 = []  # For file2 (shows additions)
     
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == 'equal':
-            text = text1[i1:i2]
+            text = ' '.join(words1[i1:i2])
             if text:
-                # Make whitespace visible
-                display_text = text.replace('  ', ' · ')  # Show double spaces
-                diff1.append({"text": display_text, "type": "same"})
-                diff2.append({"text": display_text, "type": "same"})
+                diff1.append({"text": text, "type": "same"})
+                diff2.append({"text": text, "type": "same"})
         elif tag == 'delete':
-            text = text1[i1:i2]
+            text = ' '.join(words1[i1:i2])
             if text:
-                # Make whitespace visible in removed text
-                display_text = text.replace(' ', '·').replace('\t', '→').replace('\n', '↵\n')
-                diff1.append({"text": display_text, "type": "removed"})
+                diff1.append({"text": text, "type": "removed"})
         elif tag == 'insert':
-            text = text2[j1:j2]
+            text = ' '.join(words2[j1:j2])
             if text:
-                # Make whitespace visible in added text
-                display_text = text.replace(' ', '·').replace('\t', '→').replace('\n', '↵\n')
-                diff2.append({"text": display_text, "type": "added"})
+                diff2.append({"text": text, "type": "added"})
         elif tag == 'replace':
-            text1_part = text1[i1:i2]
-            text2_part = text2[j1:j2]
+            text1_part = ' '.join(words1[i1:i2])
+            text2_part = ' '.join(words2[j1:j2])
             if text1_part:
-                display_text = text1_part.replace(' ', '·').replace('\t', '→').replace('\n', '↵\n')
-                diff1.append({"text": display_text, "type": "removed"})
+                diff1.append({"text": text1_part, "type": "removed"})
             if text2_part:
-                display_text = text2_part.replace(' ', '·').replace('\t', '→').replace('\n', '↵\n')
-                diff2.append({"text": display_text, "type": "added"})
+                diff2.append({"text": text2_part, "type": "added"})
     
     return diff1, diff2
 
