@@ -365,6 +365,15 @@ function ProgressTerminal({ logs, isProcessing }) {
   );
 }
 
+// Copy Button Component (extracted for reusability)
+function CopyButton({ onClick, tabName, copiedTab }) {
+  return (
+    <Button variant="outline" size="sm" onClick={onClick} className="h-7 px-2 text-xs gap-1" data-testid={`copy-${tabName}-btn`}>
+      {copiedTab === tabName ? <><Check className="h-3 w-3 text-green-600" />Copied!</> : <><Copy className="h-3 w-3" />Copy</>}
+    </Button>
+  );
+}
+
 // Excel Preview Component with Word Diff
 function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setComparisonFilter }) {
   const [activeTab, setActiveTab] = useState("comparison");
