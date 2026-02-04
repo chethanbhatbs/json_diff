@@ -625,6 +625,8 @@ function SummaryStats({ summary }) {
 
 // Export Panel Component
 function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, outputFilename, setOutputFilename, isDownloading, user }) {
+  const isFilenameValid = outputFilename.trim().length > 0;
+  
   return (
     <div className="border rounded-lg bg-card p-4" data-testid="export-panel">
       <div className="flex items-center gap-2 mb-3">
@@ -633,14 +635,20 @@ function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, 
       </div>
       <div className="space-y-3">
         <div>
-          <Label className="text-xs font-medium mb-1 block">Output Filename</Label>
+          <Label className="text-xs font-medium mb-1 block">
+            Output Filename <span className="text-red-500">*</span>
+          </Label>
           <Input 
             value={outputFilename} 
             onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-            placeholder="comparison_report"
-            className="h-9"
+            placeholder="Enter filename (required)"
+            className={cn("h-9", !isFilenameValid && outputFilename.length === 0 && "border-red-300")}
             data-testid="output-filename-input"
+            required
           />
+          {!isFilenameValid && (
+            <p className="text-xs text-red-500 mt-1">Filename is required</p>
+          )}
         </div>
         
         <div className="grid grid-cols-2 gap-2">
@@ -1303,7 +1311,7 @@ function App() {
     else { const ns = [...selectedTools, toolName]; if (ns.length === tools.length) setSelectedTools(null); else setSelectedTools(ns); }
   };
   const isToolSelected = (name) => selectedTools === null || selectedTools.includes(name);
-  const canCompare = file1?.valid && file2?.valid && !isComparing;
+  const canCompare = file1?.valid && file2?.valid && !isComparing && outputFilename.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-background print:bg-white">
