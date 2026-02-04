@@ -210,6 +210,7 @@ function ProgressTerminal({ logs, isProcessing }) {
 // Excel Preview Component
 function ExcelPreview({ previewData }) {
   const [activeTab, setActiveTab] = useState("comparison");
+  const [copiedTab, setCopiedTab] = useState(null);
   
   if (!previewData) return null;
 
@@ -228,6 +229,126 @@ function ExcelPreview({ previewData }) {
     if (type === 'Removed from File2') return 'bg-red-100 text-red-700';
     return 'bg-yellow-100 text-yellow-700';
   };
+
+  // Copy functions for each tab - creates tab-separated values for Google Sheets
+  const copyComparison = () => {
+    const headers = ['Tool Name', 'In File1', 'In File2', 'Same?', 'Notes'];
+    const rows = previewData.comparison?.map(row => [
+      row.name,
+      row.in_file1 ? 'Yes' : 'No',
+      row.in_file2 ? 'Yes' : 'No',
+      row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A',
+      row.notes
+    ]) || [];
+    const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
+    navigator.clipboard.writeText(tsv);
+    setCopiedTab('comparison');
+    toast.success('Comparison data copied! Paste into Google Sheets.');
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
+  const copyDifferences = () => {
+    const headers = ['Tool Name', 'File1 Description', 'File2 Description', 'Change Type'];
+    const rows = previewData.differences?.map(row => [
+      row.name,
+      row.file1_desc || '',
+      row.file2_desc || '',
+      row.change_type
+    ]) || [];
+    const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
+    navigator.clipboard.writeText(tsv);
+    setCopiedTab('differences');
+    toast.success('Differences data copied! Paste into Google Sheets.');
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
+  const copyFile1 = () => {
+    const headers = ['#', 'Tool Name', 'Description'];
+    const rows = previewData.file1_tools?.map(row => [
+      row.index,
+      row.name,
+      row.description
+    ]) || [];
+    const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
+    navigator.clipboard.writeText(tsv);
+    setCopiedTab('file1');
+    toast.success('File 1 data copied! Paste into Google Sheets.');
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
+  const copyFile2 = () => {
+    const headers = ['#', 'Tool Name', 'Description'];
+    const rows = previewData.file2_tools?.map(row => [
+      row.index,
+      row.name,
+      row.description
+    ]) || [];
+    const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
+    navigator.clipboard.writeText(tsv);
+    setCopiedTab('file2');
+    toast.success('File 2 data copied! Paste into Google Sheets.');
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
+  const copyAll = () => {
+    let allData = '';
+    
+    // Comparison sheet
+    allData += '=== COMPARISON ===\n';
+    const compHeaders = ['Tool Name', 'In File1', 'In File2', 'Same?', 'Notes'];
+    const compRows = previewData.comparison?.map(row => [
+      row.name,
+      row.in_file1 ? 'Yes' : 'No',
+      row.in_file2 ? 'Yes' : 'No',
+      row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A',
+      row.notes
+    ]) || [];
+    allData += [compHeaders, ...compRows].map(row => row.join('\t')).join('\n');
+    
+    // Differences sheet
+    allData += '\n\n=== DIFFERENCES ===\n';
+    const diffHeaders = ['Tool Name', 'File1 Description', 'File2 Description', 'Change Type'];
+    const diffRows = previewData.differences?.map(row => [
+      row.name,
+      row.file1_desc || '',
+      row.file2_desc || '',
+      row.change_type
+    ]) || [];
+    allData += [diffHeaders, ...diffRows].map(row => row.join('\t')).join('\n');
+    
+    // File1 sheet
+    allData += '\n\n=== FILE 1 TOOLS ===\n';
+    const f1Headers = ['#', 'Tool Name', 'Description'];
+    const f1Rows = previewData.file1_tools?.map(row => [row.index, row.name, row.description]) || [];
+    allData += [f1Headers, ...f1Rows].map(row => row.join('\t')).join('\n');
+    
+    // File2 sheet
+    allData += '\n\n=== FILE 2 TOOLS ===\n';
+    const f2Headers = ['#', 'Tool Name', 'Description'];
+    const f2Rows = previewData.file2_tools?.map(row => [row.index, row.name, row.description]) || [];
+    allData += [f2Headers, ...f2Rows].map(row => row.join('\t')).join('\n');
+    
+    navigator.clipboard.writeText(allData);
+    setCopiedTab('all');
+    toast.success('All data copied! Paste into Google Sheets.');
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
+  const CopyButton = ({ onClick, tabName }) => (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="h-7 px-2 text-xs gap-1"
+      data-testid={`copy-${tabName}-btn`}
+    >
+      {copiedTab === tabName ? (
+        <><Check className="h-3 w-3 text-green-600" />Copied!</>
+      ) : (
+        <><Copy className="h-3 w-3" />Copy</>
+      )}
+    </Button>
+  );
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden" data-testid="excel-preview">
