@@ -718,7 +718,7 @@ function SummaryStats({ summary }) {
 }
 
 // Export Panel Component - Enhanced
-function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, isDownloading, user }) {
+function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, onShare, isDownloading, user }) {
   return (
     <div className="border rounded-lg bg-card p-6" data-testid="export-panel">
       <div className="flex items-center gap-2 mb-4">
@@ -770,7 +770,17 @@ function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, 
           </Button>
         </div>
 
-        <div className="pt-3 border-t">
+        <div className="space-y-2 pt-3 border-t">
+          <Button 
+            onClick={onShare}
+            variant="secondary"
+            size="default"
+            className="w-full h-11 gap-2 font-medium"
+            data-testid="share-btn"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Share Comparison
+          </Button>
           <Button 
             onClick={onLogin} 
             variant="outline" 
