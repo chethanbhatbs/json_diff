@@ -1342,7 +1342,7 @@ function App() {
                     onExportHtml={handleExportHtml}
                     onExportPdf={handleExportPdf}
                     onPrint={handlePrint}
-                    onExportGoogleSheets={handleExportGoogleSheets}
+                    onLogin={handleGoogleSheetsLogin}
                     outputFilename={outputFilename}
                     setOutputFilename={setOutputFilename}
                     isDownloading={isDownloading}
