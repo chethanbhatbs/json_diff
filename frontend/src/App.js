@@ -596,24 +596,83 @@ function ExcelPreview({ previewData, previewRef }) {
   );
 }
 
-// Summary Stats Component  
+// Summary Stats Component - Enhanced  
 function SummaryStats({ summary }) {
   if (!summary) return null;
   const stats = [
-    { label: 'File 1', value: summary.file1_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
-    { label: 'File 2', value: summary.file2_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
-    { label: 'Same', value: summary.same_count, icon: Equal, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Modified', value: summary.modified_count, icon: AlertTriangle, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-    { label: 'Added', value: summary.added_count, icon: Check, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Removed', value: summary.removed_count, icon: X, color: 'text-red-600', bg: 'bg-red-50' },
+    { 
+      label: 'File 1 Tools', 
+      value: summary.file1_tools, 
+      icon: FileJson, 
+      color: 'text-foreground',
+      bg: 'bg-muted/50',
+      border: 'border-border'
+    },
+    { 
+      label: 'File 2 Tools', 
+      value: summary.file2_tools, 
+      icon: FileJson, 
+      color: 'text-foreground',
+      bg: 'bg-muted/50',
+      border: 'border-border'
+    },
+    { 
+      label: 'Same', 
+      value: summary.same_count, 
+      icon: CheckCircle, 
+      color: 'text-diff-added-text dark:text-diff-added-border',
+      bg: 'bg-diff-added-bg/50',
+      border: 'border-diff-added-border/30'
+    },
+    { 
+      label: 'Modified', 
+      value: summary.modified_count, 
+      icon: AlertTriangle, 
+      color: 'text-diff-modified-text dark:text-diff-modified-border',
+      bg: 'bg-diff-modified-bg/50',
+      border: 'border-diff-modified-border/30'
+    },
+    { 
+      label: 'Added', 
+      value: summary.added_count, 
+      icon: Check, 
+      color: 'text-diff-added-text dark:text-diff-added-border',
+      bg: 'bg-diff-added-bg/50',
+      border: 'border-diff-added-border/30'
+    },
+    { 
+      label: 'Removed', 
+      value: summary.removed_count, 
+      icon: X, 
+      color: 'text-diff-removed-text dark:text-diff-removed-border',
+      bg: 'bg-diff-removed-bg/50',
+      border: 'border-diff-removed-border/30'
+    },
   ];
+  
   return (
-    <div className="stats-grid mb-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {stats.map((stat, idx) => (
-        <div key={idx} className={cn("summary-stat", stat.bg)}>
-          <stat.icon className={cn("h-4 w-4 mb-1", stat.color)} />
-          <span className={cn("text-xl font-bold", stat.color)}>{stat.value}</span>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{stat.label}</span>
+        <div 
+          key={idx} 
+          className={cn(
+            "relative p-4 rounded-lg border transition-all duration-200",
+            stat.bg,
+            stat.border,
+            "hover:shadow-sm"
+          )}
+        >
+          <div className="flex flex-col items-center text-center space-y-2">
+            <div className={cn("p-2 rounded-full bg-background/80", stat.border, "border")}>
+              <stat.icon className={cn("h-4 w-4", stat.color)} />
+            </div>
+            <div className={cn("text-2xl font-bold font-heading", stat.color)}>
+              {stat.value}
+            </div>
+            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              {stat.label}
+            </div>
+          </div>
         </div>
       ))}
     </div>
