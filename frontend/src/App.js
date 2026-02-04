@@ -505,7 +505,7 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
                 ))}
               </div>
             </div>
-            <CopyButton onClick={copyComparison} tabName="comparison" />
+            <CopyButton onClick={copyComparison} tabName="comparison" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
             <UITable>
@@ -540,7 +540,7 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
 
         <TabsContent value="differences" className="m-0">
           <div className="flex justify-end p-2 border-b bg-zinc-50">
-            <CopyButton onClick={copyDifferences} tabName="differences" />
+            <CopyButton onClick={copyDifferences} tabName="differences" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
             <UITable>
@@ -580,7 +580,7 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
 
         <TabsContent value="file1" className="m-0">
           <div className="flex justify-end p-2 border-b bg-zinc-50">
-            <CopyButton onClick={copyFile1} tabName="file1" />
+            <CopyButton onClick={copyFile1} tabName="file1" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
             <UITable>
@@ -606,7 +606,7 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
 
         <TabsContent value="file2" className="m-0">
           <div className="flex justify-end p-2 border-b bg-zinc-50">
-            <CopyButton onClick={copyFile2} tabName="file2" />
+            <CopyButton onClick={copyFile2} tabName="file2" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
             <UITable>
