@@ -1334,6 +1334,15 @@ function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={toggleTheme} 
+              className="gap-2"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
             {user ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">{user.name}</span>
