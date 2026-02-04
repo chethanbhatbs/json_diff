@@ -811,12 +811,131 @@ function App() {
       addLog(`Excel file "${outputFilename}.xlsx" downloaded successfully`, 'success');
       toast.success(`File saved as "${outputFilename}.xlsx"`);
     } catch (error) {
-      addLog('Download failed', 'error');
-      toast.error('Failed to download file');
+      addLog('Download failed - try HTML export instead', 'error');
+      toast.error('Download failed. Try HTML Table export instead.');
     } finally {
       setIsDownloading(false);
     }
   }, [downloadUrl, outputFilename, addLog]);
+
+  // Export as HTML - opens in new tab, can be saved and opened in Excel
+  const handleExportHtml = useCallback(() => {
+    if (!previewData) return;
+    
+    const filename = outputFilename || 'comparison_report';
+    
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${filename} - JSON Comparison Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; border-bottom: 2px solid #4472C4; padding-bottom: 10px; }
+    h2 { color: #4472C4; margin-top: 30px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
+    th { background-color: #4472C4; color: white; padding: 10px; text-align: left; border: 1px solid #ddd; }
+    td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .same { background-color: #C6EFCE; }
+    .modified { background-color: #FFEB9C; }
+    .added { background-color: #D4F4DD; }
+    .removed { background-color: #FFC7CE; }
+    .yes { background-color: #C6EFCE; text-align: center; }
+    .no { background-color: #FFC7CE; text-align: center; }
+    .summary { display: flex; gap: 20px; margin-bottom: 20px; }
+    .stat { padding: 15px 25px; border-radius: 8px; text-align: center; }
+    .stat-value { font-size: 24px; font-weight: bold; }
+    .stat-label { font-size: 12px; color: #666; }
+    pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 12px; }
+    .instructions { background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>JSON Comparison Report</h1>
+  <p>Generated: ${new Date().toLocaleString()}</p>
+  
+  <div class="instructions">
+    <strong>How to use:</strong>
+    <ul>
+      <li>Press Ctrl+S (or Cmd+S) to save this file as .html</li>
+      <li>Open the saved .html file with Microsoft Excel</li>
+      <li>Or select tables below and copy-paste into Google Sheets</li>
+    </ul>
+  </div>
+  
+  <div class="summary">
+    <div class="stat" style="background:#f0f0f0"><div class="stat-value">${summary?.file1_tools || 0}</div><div class="stat-label">File 1 Tools</div></div>
+    <div class="stat" style="background:#f0f0f0"><div class="stat-value">${summary?.file2_tools || 0}</div><div class="stat-label">File 2 Tools</div></div>
+    <div class="stat" style="background:#C6EFCE"><div class="stat-value">${summary?.same_count || 0}</div><div class="stat-label">Same</div></div>
+    <div class="stat" style="background:#FFEB9C"><div class="stat-value">${summary?.modified_count || 0}</div><div class="stat-label">Modified</div></div>
+    <div class="stat" style="background:#D4F4DD"><div class="stat-value">${summary?.added_count || 0}</div><div class="stat-label">Added</div></div>
+    <div class="stat" style="background:#FFC7CE"><div class="stat-value">${summary?.removed_count || 0}</div><div class="stat-label">Removed</div></div>
+  </div>
+
+  <h2>Comparison</h2>
+  <table>
+    <tr><th>Tool Name</th><th>In File1</th><th>In File2</th><th>Same?</th><th>Notes</th></tr>
+    ${previewData.comparison?.map(row => `
+      <tr class="${row.status}">
+        <td>${row.name}</td>
+        <td class="${row.in_file1 ? 'yes' : 'no'}">${row.in_file1 ? '✓' : '✗'}</td>
+        <td class="${row.in_file2 ? 'yes' : 'no'}">${row.in_file2 ? '✓' : '✗'}</td>
+        <td class="${row.desc_same === true ? 'yes' : row.desc_same === false ? 'modified' : ''}">${row.desc_same === true ? '✓' : row.desc_same === false ? '✗' : 'N/A'}</td>
+        <td>${row.notes}</td>
+      </tr>
+    `).join('') || ''}
+  </table>
+
+  <h2>Differences</h2>
+  <table>
+    <tr><th>Tool Name</th><th>File1 Description</th><th>File2 Description</th><th>Change Type</th></tr>
+    ${previewData.differences?.length === 0 ? '<tr><td colspan="4" style="text-align:center">No differences found</td></tr>' : 
+      previewData.differences?.map(row => `
+        <tr>
+          <td>${row.name}</td>
+          <td class="${row.change_type === 'Removed from File2' || row.change_type === 'Modified' ? 'removed' : ''}"><pre>${row.file1_desc || '-'}</pre></td>
+          <td class="${row.change_type === 'Added in File2' || row.change_type === 'Modified' ? 'added' : ''}"><pre>${row.file2_desc || '-'}</pre></td>
+          <td>${row.change_type}</td>
+        </tr>
+      `).join('') || ''}
+  </table>
+
+  <h2>File 1 Tools</h2>
+  <table>
+    <tr><th>#</th><th>Tool Name</th><th>Description</th></tr>
+    ${previewData.file1_tools?.map(row => `
+      <tr>
+        <td>${row.index}</td>
+        <td>${row.name}</td>
+        <td><pre>${row.description}</pre></td>
+      </tr>
+    `).join('') || ''}
+  </table>
+
+  <h2>File 2 Tools</h2>
+  <table>
+    <tr><th>#</th><th>Tool Name</th><th>Description</th></tr>
+    ${previewData.file2_tools?.map(row => `
+      <tr>
+        <td>${row.index}</td>
+        <td>${row.name}</td>
+        <td><pre>${row.description}</pre></td>
+      </tr>
+    `).join('') || ''}
+  </table>
+</body>
+</html>`;
+
+    // Open in new tab
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    
+    addLog('HTML report opened in new tab - save with Ctrl+S', 'success');
+    toast.success('HTML report opened! Press Ctrl+S to save, then open with Excel.');
+  }, [previewData, summary, outputFilename, addLog]);
   
   const handleReset = () => {
     setFile1(null); setFile2(null);
