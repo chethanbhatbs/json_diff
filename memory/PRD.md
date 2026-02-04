@@ -8,10 +8,10 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 2. Parse & discover structure
 3. Configure comparison (what to compare: Tools/System/Entire/Custom Path)
 4. Select specific tools if using Tools comparison
-5. Specify custom output filename
-6. Click "Compare & Generate Excel"
-7. Download Excel report with comparison results
-8. View history of recent comparisons
+5. Click "Compare & Generate Excel"
+6. **View Excel Preview in the UI** (4 tabs: Comparison, Differences, File1, File2)
+7. Specify custom output filename
+8. Download Excel report
 
 ## Architecture
 
@@ -19,14 +19,13 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 - `/api/upload` - Upload and validate JSON files
 - `/api/analyze/{file_id}` - Analyze JSON structure, detect tool paths
 - `/api/tools/{file_id}` - Get list of tools from a JSON file
-- `/api/compare` - Compare two JSON files and generate Excel
+- `/api/compare` - Compare files, generate Excel, **return preview data**
 - `/api/download/{filename}` - Download generated Excel file
-- `/api/structure/{file_id}` - Get full JSON structure for tree view
 
 ### Frontend (React)
 - Single page application
-- Components: FileUploadZone, ProgressTerminal, SummaryPanel, HistoryPanel
-- Uses shadcn/UI components
+- Components: FileUploadZone, ProgressTerminal, SummaryStats, **ExcelPreview**, DownloadPanel, HistoryPanel
+- Uses shadcn/UI components including Table component
 - Light theme, minimalist design
 - localStorage for comparison history
 
@@ -35,53 +34,29 @@ Build a web-based tool that compares two JSON files and generates an Excel repor
 - Color coding: Green (present/same), Red (missing), Yellow (modified)
 - Word-level diff for description changes
 
-## What's Been Implemented (Jan 2026)
+## What's Been Implemented (Feb 2026)
 - ✅ JSON file upload with validation (drag & drop + click to browse)
 - ✅ Comparison type selection (Tools/System/Entire/Custom Path)
 - ✅ Tool path auto-detection
 - ✅ Tool selection with search/filter
 - ✅ Excel report generation matching Python script output
 - ✅ Progress terminal with logs
-- ✅ Summary panel with statistics
-- ✅ **Custom output filename** (new feature)
-- ✅ **Comparison history** using localStorage (new feature)
-- ✅ Blob-based file download (fixed)
+- ✅ Summary stats panel
+- ✅ **Excel Preview UI** - View all 4 sheets in tabbed interface before download
+- ✅ Custom output filename
+- ✅ Comparison history using localStorage
+- ✅ Blob-based file download with custom filename
 - ✅ Reset functionality
 
-## User Personas
-1. **Developer** - Comparing API tool configurations between environments
-2. **QA Engineer** - Validating tool changes between versions
-3. **Technical Writer** - Documenting tool differences
-
-## Core Requirements (Static)
-- Must handle JSON files up to 10-20 MB
-- Excel output must match Python script exactly
-- Stateless tool (no authentication required)
-- Clear validation errors for invalid JSON
-
-## Prioritized Backlog
-
-### P0 (Implemented)
-- File upload with JSON validation
-- Tools comparison with Excel generation
-- System and Entire Object comparison
-- Custom path comparison
-- Download Excel report
-- Custom output filename
-- Comparison history
-
-### P1 (Next)
-- JSON tree view explorer for structure visualization
-- Side-by-side diff preview in UI before Excel generation
-- Export history
-
-### P2 (Future)
-- Batch comparison of multiple file pairs
-- Save comparison templates
-- Export comparison as PDF
-- API-only mode for CI/CD integration
+## Excel Preview Features
+- **Comparison Tab**: Shows all tools with checkmarks (✓/✗) for presence in each file, Same? column with color coding
+- **Differences Tab**: Shows only modified/added/removed tools with side-by-side descriptions and change type badges
+- **File 1 Tab**: Full list of tools from file 1
+- **File 2 Tab**: Full list of tools from file 2
+- Color-coded headers matching Excel (blue)
+- Color-coded cells matching Excel (green/red/yellow backgrounds)
 
 ## Next Action Items
 1. Add JSON tree view explorer for structure visualization
-2. Add side-by-side diff preview in UI before Excel generation
-3. Consider batch comparison feature for multiple file pairs
+2. Add side-by-side word-level diff highlighting in Differences tab
+3. Consider batch comparison for multiple file pairs
