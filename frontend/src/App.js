@@ -767,22 +767,36 @@ function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, 
 
 // History Panel with full data
 function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory }) {
+  const [isOpen, setIsOpen] = useState(true);
+  
   if (history.length === 0) return null;
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden" data-testid="history-panel">
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-zinc-50">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-6 py-4 border-b bg-muted/30 hover:bg-muted/50 transition-colors"
+      >
         <div className="flex items-center gap-2">
-          <History className="h-4 w-4 text-muted-foreground" />
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Comparison History</span>
-          <Badge variant="secondary" className="text-[10px]">{history.length}</Badge>
+          <History className="h-4 w-4" />
+          <span className="text-sm font-semibold uppercase tracking-wider">History</span>
+          <Badge variant="secondary" className="text-xs">{history.length}</Badge>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClearHistory} className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive">
-          <Trash2 className="h-3 w-3 mr-1" />Clear All
-        </Button>
-      </div>
-      <ScrollArea className="h-[200px]">
-        <div className="p-2 space-y-2">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={(e) => { e.stopPropagation(); onClearHistory(); }} 
+            className="h-7 px-2 text-xs hover:text-destructive"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />Clear All
+          </Button>
+          <Terminal className={cn("h-4 w-4 transition-transform", isOpen ? "rotate-90" : "")} />
+        </div>
+      </button>
+      {isOpen && (
+        <ScrollArea className="h-[220px] animate-fade-in">
+          <div className="p-3 space-y-2">
           {history.map((item, idx) => (
             <div 
               key={item.id} 
