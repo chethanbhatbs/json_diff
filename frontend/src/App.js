@@ -1424,8 +1424,6 @@ function App() {
   const handleClearAll = useCallback(() => {
     setFile1(null);
     setFile2(null);
-    setFileId1(null);
-    setFileId2(null);
     setSummary(null);
     setPreviewData(null);
     setDownloadUrl(null);
