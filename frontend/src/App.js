@@ -1457,7 +1457,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background print:bg-white">
-      <Toaster position="top-right" />
+      <Toaster position="bottom-right" />
       
       {/* Edit Dialog */}
       <EditFileDialog
