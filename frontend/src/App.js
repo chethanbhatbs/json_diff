@@ -905,34 +905,6 @@ function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Esc to close edit dialog
-      if (e.key === 'Escape' && editDialog.open) {
-        setEditDialog({ open: false, fileId: null, filename: '', fileNumber: null });
-      }
-      
-      // Ctrl+K or Cmd+K to focus search in tool selection
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        const searchInput = document.querySelector('[data-testid="tool-search-input"]');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      }
-      
-      // Ctrl+S or Cmd+S to compare (when ready)
-      if ((e.ctrlKey || e.metaKey) && e.key === 's' && canCompare) {
-        e.preventDefault();
-        handleCompare();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editDialog.open, canCompare, handleCompare]);
-
   // Check for session_id in URL (OAuth callback)
   useEffect(() => {
     const hash = window.location.hash;
