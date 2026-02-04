@@ -563,12 +563,12 @@ function SummaryStats({ summary }) {
 }
 
 // Download Panel Component
-function DownloadPanel({ onDownload, outputFilename, setOutputFilename, isDownloading }) {
+function DownloadPanel({ onDownload, onExportHtml, outputFilename, setOutputFilename, isDownloading }) {
   return (
     <div className="border rounded-lg bg-card p-4" data-testid="download-panel">
       <div className="flex items-center gap-2 mb-3">
         <Download className="h-4 w-4 text-muted-foreground" />
-        <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Download Excel</span>
+        <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Export Options</span>
       </div>
       <div className="space-y-3">
         <div>
@@ -580,15 +580,27 @@ function DownloadPanel({ onDownload, outputFilename, setOutputFilename, isDownlo
             className="h-9"
             data-testid="output-filename-input"
           />
-          <p className="text-[10px] text-muted-foreground mt-1">.xlsx will be added automatically</p>
         </div>
-        <Button onClick={onDownload} className="w-full gap-2" disabled={isDownloading} data-testid="download-excel-btn">
-          {isDownloading ? (
-            <><Loader2 className="h-4 w-4 animate-spin" />Downloading...</>
-          ) : (
-            <><Download className="h-4 w-4" />Download Excel File</>
-          )}
-        </Button>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={onDownload} variant="default" className="gap-2" disabled={isDownloading} data-testid="download-excel-btn">
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Excel (.xlsx)
+          </Button>
+          
+          <Button onClick={onExportHtml} variant="outline" className="gap-2" data-testid="export-html-btn">
+            <FileSpreadsheet className="h-4 w-4" />
+            HTML Table
+          </Button>
+        </div>
+        
+        <p className="text-[10px] text-muted-foreground">
+          <strong>Tip:</strong> HTML Table opens in a new tab. Save it as .html and open with Excel, or copy-paste into Google Sheets.
+        </p>
       </div>
     </div>
   );
