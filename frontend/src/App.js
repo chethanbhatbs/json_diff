@@ -366,7 +366,7 @@ function ProgressTerminal({ logs, isProcessing }) {
 }
 
 // Excel Preview Component with Word Diff
-function ExcelPreview({ previewData, previewRef }) {
+function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setComparisonFilter }) {
   const [activeTab, setActiveTab] = useState("comparison");
   const [copiedTab, setCopiedTab] = useState(null);
   
@@ -485,7 +485,23 @@ function ExcelPreview({ previewData, previewRef }) {
         </div>
 
         <TabsContent value="comparison" className="m-0">
-          <div className="flex justify-end p-2 border-b bg-zinc-50">
+          <div className="flex items-center justify-between p-2 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              <div className="flex gap-1">
+                {['all', 'added', 'removed', 'modified', 'same'].map((filter) => (
+                  <Button
+                    key={filter}
+                    variant={comparisonFilter === filter ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setComparisonFilter && setComparisonFilter(filter)}
+                    className="h-7 px-2 text-xs capitalize"
+                  >
+                    {filter}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <CopyButton onClick={copyComparison} tabName="comparison" />
           </div>
           <ScrollArea className="h-[280px]">
@@ -500,7 +516,10 @@ function ExcelPreview({ previewData, previewRef }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {previewData.comparison?.map((row, idx) => (
+                {previewData.comparison?.filter(row => {
+                  if (comparisonFilter === 'all') return true;
+                  return row.status === comparisonFilter;
+                }).map((row, idx) => (
                   <TableRow key={idx} className={getStatusColor(row.status)}>
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell className={cn("text-center", row.in_file1 ? "bg-green-200" : "bg-red-200")}>{row.in_file1 ? '✓' : '✗'}</TableCell>
