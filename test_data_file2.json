@@ -1,0 +1,38 @@
+{
+  "log": {
+    "body": {
+      "toolConfig": {
+        "tools": [
+          {
+            "name": "search_web",
+            "description": "Search the web for information on a given topic using advanced algorithms",
+            "function": {
+              "name": "search_web",
+              "description": "Search the web for information"
+            }
+          },
+          {
+            "name": "file_manager",
+            "description": "Create, read, update, and delete files on the system",
+            "function": {
+              "name": "file_manager",
+              "description": "Manage files and directories"
+            }
+          },
+          {
+            "name": "email_sender",
+            "description": "Send emails to specified recipients",
+            "function": {
+              "name": "email_sender",
+              "description": "Send email messages"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "version": "2.0",
+    "timestamp": "2025-01-02T00:00:00Z"
+  }
+}

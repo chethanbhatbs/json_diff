@@ -1,0 +1,12 @@
+{
+  "name": "invalid_json",
+  "data": [
+    {
+      "key": "value"
+    }
+    // Missing comma here makes it invalid
+    {
+      "key2": "value2"
+    }
+  ]
+}

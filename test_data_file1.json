@@ -1,0 +1,38 @@
+{
+  "log": {
+    "body": {
+      "toolConfig": {
+        "tools": [
+          {
+            "name": "search_web",
+            "description": "Search the web for information on a given topic",
+            "function": {
+              "name": "search_web",
+              "description": "Search the web for information"
+            }
+          },
+          {
+            "name": "file_manager",
+            "description": "Create, read, update, and delete files on the system",
+            "function": {
+              "name": "file_manager",
+              "description": "Manage files and directories"
+            }
+          },
+          {
+            "name": "calculator",
+            "description": "Perform mathematical calculations",
+            "function": {
+              "name": "calculator",
+              "description": "Calculate mathematical expressions"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "version": "1.0",
+    "timestamp": "2025-01-01T00:00:00Z"
+  }
+}
