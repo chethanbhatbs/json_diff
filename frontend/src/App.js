@@ -467,12 +467,6 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
     copyTableToClipboard(headers, rows, 'file2', 'Copied! Paste into Google Sheets.');
   };
 
-  const CopyButton = ({ onClick, tabName }) => (
-    <Button variant="outline" size="sm" onClick={onClick} className="h-7 px-2 text-xs gap-1" data-testid={`copy-${tabName}-btn`}>
-      {copiedTab === tabName ? <><Check className="h-3 w-3 text-green-600" />Copied!</> : <><Copy className="h-3 w-3" />Copy</>}
-    </Button>
-  );
-
   return (
     <div ref={previewRef} className="border rounded-lg bg-card overflow-hidden" data-testid="excel-preview">
       <div className="p-4 border-b bg-zinc-50">
