@@ -695,41 +695,69 @@ function SummaryStats({ summary }) {
   );
 }
 
-// Export Panel Component
+// Export Panel Component - Enhanced
 function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, isDownloading, user }) {
   return (
-    <div className="border rounded-lg bg-card p-4" data-testid="export-panel">
-      <div className="flex items-center gap-2 mb-3">
-        <Download className="h-4 w-4 text-muted-foreground" />
-        <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Export Options</span>
+    <div className="border rounded-lg bg-card p-6" data-testid="export-panel">
+      <div className="flex items-center gap-2 mb-4">
+        <Download className="h-5 w-5 text-primary" />
+        <span className="text-sm font-semibold uppercase tracking-wider">Export Options</span>
       </div>
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <Button onClick={onDownload} variant="default" size="sm" className="gap-1.5" disabled={isDownloading} data-testid="download-excel-btn">
-            {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            Excel
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            onClick={onDownload} 
+            variant="default" 
+            size="default" 
+            className="h-11 gap-2 font-medium" 
+            disabled={isDownloading} 
+            data-testid="download-excel-btn"
+          >
+            {isDownloading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />Downloading...</>
+            ) : (
+              <><FileSpreadsheet className="h-4 w-4" />Excel</>
+            )}
           </Button>
-          <Button onClick={onExportHtml} variant="outline" size="sm" className="gap-1.5" data-testid="export-html-btn">
-            <FileSpreadsheet className="h-3.5 w-3.5" />HTML
+          <Button 
+            onClick={onExportHtml} 
+            variant="outline" 
+            size="default" 
+            className="h-11 gap-2" 
+            data-testid="export-html-btn"
+          >
+            <FileText className="h-4 w-4" />HTML
           </Button>
-          <Button onClick={onExportPdf} variant="outline" size="sm" className="gap-1.5" data-testid="export-pdf-btn">
-            <FileText className="h-3.5 w-3.5" />PDF
+          <Button 
+            onClick={onExportPdf} 
+            variant="outline" 
+            size="default" 
+            className="h-11 gap-2" 
+            data-testid="export-pdf-btn"
+          >
+            <FileText className="h-4 w-4" />PDF
           </Button>
-          <Button onClick={onPrint} variant="outline" size="sm" className="gap-1.5" data-testid="print-btn">
-            <Printer className="h-3.5 w-3.5" />Print
+          <Button 
+            onClick={onPrint} 
+            variant="outline" 
+            size="default" 
+            className="h-11 gap-2" 
+            data-testid="print-btn"
+          >
+            <Printer className="h-4 w-4" />Print
           </Button>
         </div>
 
-        <div className="pt-2 border-t">
+        <div className="pt-3 border-t">
           <Button 
             onClick={onLogin} 
             variant="outline" 
-            size="sm" 
-            className="w-full gap-2" 
+            size="default" 
+            className="w-full h-11 gap-2" 
             data-testid="export-gsheets-btn"
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-            {user ? 'Export to Google Sheets' : 'Login for Google Sheets Export'}
+            <ExternalLink className="h-4 w-4" />
+            {user ? 'Export to Google Sheets' : 'Login for Google Sheets'}
           </Button>
         </div>
       </div>
