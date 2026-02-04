@@ -1486,6 +1486,7 @@ function App() {
                 </div>
               </section>
             )}
+            )}
 
             <Button onClick={handleCompare} disabled={!canCompare} className="w-full h-12 text-base gap-2" data-testid="compare-btn">
               {isComparing ? <><Loader2 className="h-5 w-5 animate-spin" />Comparing...</> : <><GitCompare className="h-5 w-5" />Compare &amp; Generate</>}
