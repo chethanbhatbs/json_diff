@@ -1139,17 +1139,22 @@ function App() {
 <head>
   <title>JSON Comparison Report - Print</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 11px; }
     h1 { font-size: 18px; margin-bottom: 5px; }
-    h2 { font-size: 14px; margin-top: 20px; border-bottom: 1px solid #333; padding-bottom: 5px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-    th, td { border: 1px solid #333; padding: 6px; text-align: left; }
+    h2 { font-size: 14px; margin-top: 20px; border-bottom: 1px solid #333; padding-bottom: 5px; page-break-before: auto; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; page-break-inside: auto; }
+    th, td { border: 1px solid #333; padding: 5px; text-align: left; font-size: 10px; }
     th { background-color: #f0f0f0; font-weight: bold; }
-    .summary { display: flex; gap: 20px; margin: 15px 0; }
-    .stat { text-align: center; padding: 10px; border: 1px solid #ccc; }
-    .stat-value { font-size: 20px; font-weight: bold; }
-    .stat-label { font-size: 10px; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    .summary { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
+    .stat { text-align: center; padding: 8px; border: 1px solid #ccc; min-width: 80px; }
+    .stat-value { font-size: 18px; font-weight: bold; }
+    .stat-label { font-size: 9px; }
+    pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 9px; font-family: monospace; }
+    @media print { 
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-break { page-break-before: always; }
+    }
   </style>
 </head>
 <body>
@@ -1165,16 +1170,30 @@ function App() {
     <div class="stat"><div class="stat-value">${summary.removed_count}</div><div class="stat-label">Removed</div></div>
   </div>
 
-  <h2>Comparison</h2>
+  <h2>Comparison Summary</h2>
   <table>
     <tr><th>Tool Name</th><th>In File1</th><th>In File2</th><th>Same?</th><th>Notes</th></tr>
-    ${previewData.comparison?.map(r => `<tr><td>${r.name}</td><td>${r.in_file1 ? '✓' : '✗'}</td><td>${r.in_file2 ? '✓' : '✗'}</td><td>${r.desc_same === true ? '✓' : r.desc_same === false ? '✗' : 'N/A'}</td><td>${r.notes}</td></tr>`).join('')}
+    ${previewData.comparison?.map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.in_file1 ? '✓' : '✗'}</td><td>${r.in_file2 ? '✓' : '✗'}</td><td>${r.desc_same === true ? '✓' : r.desc_same === false ? '✗' : 'N/A'}</td><td>${r.notes}</td></tr>`).join('')}
   </table>
 
   <h2>Differences</h2>
   <table>
     <tr><th>Tool Name</th><th>Change Type</th></tr>
-    ${previewData.differences?.map(r => `<tr><td>${r.name}</td><td>${r.change_type}</td></tr>`).join('') || '<tr><td colspan="2">No differences</td></tr>'}
+    ${previewData.differences?.map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.change_type}</td></tr>`).join('') || '<tr><td colspan="2">No differences</td></tr>'}
+  </table>
+
+  <div class="page-break"></div>
+  
+  <h2>File 1 Tools (${previewData.file1_tools?.length || 0})</h2>
+  <table>
+    <tr><th style="width:30px">#</th><th style="width:150px">Tool Name</th><th>Description</th></tr>
+    ${previewData.file1_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td><pre>${r.description}</pre></td></tr>`).join('')}
+  </table>
+
+  <h2>File 2 Tools (${previewData.file2_tools?.length || 0})</h2>
+  <table>
+    <tr><th style="width:30px">#</th><th style="width:150px">Tool Name</th><th>Description</th></tr>
+    ${previewData.file2_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td><pre>${r.description}</pre></td></tr>`).join('')}
   </table>
   
   <script>window.onload = function() { window.print(); }</script>
@@ -1184,6 +1203,7 @@ function App() {
     printWindow.document.write(html);
     printWindow.document.close();
     addLog('Print dialog opened', 'success');
+    toast.success('Print preview opened');
   }, [previewData, summary, addLog]);
 
   const handleGoogleSheetsLogin = useCallback(() => {
