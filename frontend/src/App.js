@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import "@/App.css";
 import axios from "axios";
 import { Button } from "./components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { 
@@ -24,7 +25,9 @@ import {
   Filter,
   History,
   Trash2,
-  Clock
+  Clock,
+  Table,
+  Eye
 } from "lucide-react";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -38,6 +41,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./components/ui/select";
+import {
+  Table as UITable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./components/ui/table";
 import { cn } from "./lib/utils";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -100,7 +111,6 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
     if (file) {
       onFileUploaded(file);
     }
-    // Reset input so same file can be selected again
     e.target.value = '';
   };
 
@@ -179,7 +189,7 @@ function ProgressTerminal({ logs, isProcessing }) {
         <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Progress Log</span>
         {isProcessing && <Loader2 className="h-3 w-3 text-blue-500 animate-spin ml-auto" />}
       </div>
-      <div className="terminal max-h-[200px] overflow-y-auto rounded-none">
+      <div className="terminal max-h-[150px] overflow-y-auto rounded-none">
         {logs.length === 0 ? (
           <div className="text-zinc-500 text-center py-4">Waiting for comparison...</div>
         ) : (
@@ -197,13 +207,192 @@ function ProgressTerminal({ logs, isProcessing }) {
   );
 }
 
-// Summary Panel Component
-function SummaryPanel({ summary, onDownload, outputFilename, setOutputFilename }) {
+// Excel Preview Component
+function ExcelPreview({ previewData }) {
+  const [activeTab, setActiveTab] = useState("comparison");
+  
+  if (!previewData) return null;
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'same': return 'bg-green-100 text-green-800';
+      case 'modified': return 'bg-yellow-100 text-yellow-800';
+      case 'added': return 'bg-blue-100 text-blue-800';
+      case 'removed': return 'bg-red-100 text-red-800';
+      default: return '';
+    }
+  };
+
+  const getChangeTypeColor = (type) => {
+    if (type === 'Added in File2') return 'bg-green-100 text-green-700';
+    if (type === 'Removed from File2') return 'bg-red-100 text-red-700';
+    return 'bg-yellow-100 text-yellow-700';
+  };
+
+  return (
+    <div className="border rounded-lg bg-card overflow-hidden" data-testid="excel-preview">
+      <div className="p-4 border-b bg-zinc-50">
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold">Excel Preview</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">Preview the comparison results before downloading</p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="px-4 pt-3 border-b">
+          <TabsList className="grid w-full grid-cols-4 h-9">
+            <TabsTrigger value="comparison" className="text-xs">
+              Comparison ({previewData.comparison?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="differences" className="text-xs">
+              Differences ({previewData.differences?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="file1" className="text-xs">
+              File 1 ({previewData.file1_tools?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="file2" className="text-xs">
+              File 2 ({previewData.file2_tools?.length || 0})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="comparison" className="m-0">
+          <ScrollArea className="h-[300px]">
+            <UITable>
+              <TableHeader>
+                <TableRow className="bg-blue-600 hover:bg-blue-600">
+                  <TableHead className="text-white font-bold">Tool Name</TableHead>
+                  <TableHead className="text-white font-bold text-center">In File1</TableHead>
+                  <TableHead className="text-white font-bold text-center">In File2</TableHead>
+                  <TableHead className="text-white font-bold text-center">Same?</TableHead>
+                  <TableHead className="text-white font-bold">Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewData.comparison?.map((row, idx) => (
+                  <TableRow key={idx} className={getStatusColor(row.status)}>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className={cn("text-center", row.in_file1 ? "bg-green-200" : "bg-red-200")}>
+                      {row.in_file1 ? '✓' : '✗'}
+                    </TableCell>
+                    <TableCell className={cn("text-center", row.in_file2 ? "bg-green-200" : "bg-red-200")}>
+                      {row.in_file2 ? '✓' : '✗'}
+                    </TableCell>
+                    <TableCell className={cn("text-center", 
+                      row.desc_same === true ? "bg-green-200" : 
+                      row.desc_same === false ? "bg-yellow-200" : ""
+                    )}>
+                      {row.desc_same === true ? '✓' : row.desc_same === false ? '✗' : 'N/A'}
+                    </TableCell>
+                    <TableCell>{row.notes}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </UITable>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="differences" className="m-0">
+          <ScrollArea className="h-[300px]">
+            <UITable>
+              <TableHeader>
+                <TableRow className="bg-blue-600 hover:bg-blue-600">
+                  <TableHead className="text-white font-bold w-[150px]">Tool Name</TableHead>
+                  <TableHead className="text-white font-bold">File1 Description</TableHead>
+                  <TableHead className="text-white font-bold">File2 Description</TableHead>
+                  <TableHead className="text-white font-bold w-[120px]">Change Type</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewData.differences?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      No differences found - all items are identical
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  previewData.differences?.map((row, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium align-top">{row.name}</TableCell>
+                      <TableCell className={cn("text-xs align-top", row.change_type === 'Removed from File2' || row.change_type === 'Modified' ? "bg-red-50" : "")}>
+                        <pre className="whitespace-pre-wrap font-mono">{row.file1_desc || '-'}</pre>
+                      </TableCell>
+                      <TableCell className={cn("text-xs align-top", row.change_type === 'Added in File2' || row.change_type === 'Modified' ? "bg-green-50" : "")}>
+                        <pre className="whitespace-pre-wrap font-mono">{row.file2_desc || '-'}</pre>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <Badge className={getChangeTypeColor(row.change_type)}>{row.change_type}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </UITable>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="file1" className="m-0">
+          <ScrollArea className="h-[300px]">
+            <UITable>
+              <TableHeader>
+                <TableRow className="bg-blue-600 hover:bg-blue-600">
+                  <TableHead className="text-white font-bold w-[50px]">#</TableHead>
+                  <TableHead className="text-white font-bold w-[200px]">Tool Name</TableHead>
+                  <TableHead className="text-white font-bold">Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewData.file1_tools?.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{row.index}</TableCell>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-xs">
+                      <pre className="whitespace-pre-wrap font-mono max-w-[500px]">{row.description}</pre>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </UITable>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="file2" className="m-0">
+          <ScrollArea className="h-[300px]">
+            <UITable>
+              <TableHeader>
+                <TableRow className="bg-blue-600 hover:bg-blue-600">
+                  <TableHead className="text-white font-bold w-[50px]">#</TableHead>
+                  <TableHead className="text-white font-bold w-[200px]">Tool Name</TableHead>
+                  <TableHead className="text-white font-bold">Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewData.file2_tools?.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{row.index}</TableCell>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-xs">
+                      <pre className="whitespace-pre-wrap font-mono max-w-[500px]">{row.description}</pre>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </UITable>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// Summary Stats Component  
+function SummaryStats({ summary }) {
   if (!summary) return null;
 
   const stats = [
-    { label: 'File 1 Tools', value: summary.file1_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
-    { label: 'File 2 Tools', value: summary.file2_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
+    { label: 'File 1', value: summary.file1_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
+    { label: 'File 2', value: summary.file2_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
     { label: 'Same', value: summary.same_count, icon: Equal, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Modified', value: summary.modified_count, icon: AlertTriangle, color: 'text-yellow-600', bg: 'bg-yellow-50' },
     { label: 'Added', value: summary.added_count, icon: Check, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -211,42 +400,45 @@ function SummaryPanel({ summary, onDownload, outputFilename, setOutputFilename }
   ];
 
   return (
-    <div className="border rounded-lg bg-card overflow-hidden" data-testid="summary-panel">
-      <div className="p-4 border-b bg-zinc-50">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-lg font-semibold">Comparison Complete</h3>
-            <p className="text-sm text-muted-foreground">Excel report generated successfully</p>
-          </div>
+    <div className="stats-grid mb-4">
+      {stats.map((stat, idx) => (
+        <div key={idx} className={cn("summary-stat", stat.bg)}>
+          <stat.icon className={cn("h-4 w-4 mb-1", stat.color)} />
+          <span className={cn("text-xl font-bold", stat.color)}>{stat.value}</span>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{stat.label}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <Label className="text-xs font-medium mb-1 block">Output Filename</Label>
-            <Input 
-              value={outputFilename} 
-              onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-              placeholder="comparison_report"
-              className="h-9"
-              data-testid="output-filename-input"
-            />
-          </div>
-          <div className="pt-5">
-            <Button onClick={onDownload} className="gap-2" data-testid="download-excel-btn">
-              <Download className="h-4 w-4" />Download Excel
-            </Button>
-          </div>
-        </div>
+      ))}
+    </div>
+  );
+}
+
+// Download Panel Component
+function DownloadPanel({ onDownload, outputFilename, setOutputFilename, isDownloading }) {
+  return (
+    <div className="border rounded-lg bg-card p-4" data-testid="download-panel">
+      <div className="flex items-center gap-2 mb-3">
+        <Download className="h-4 w-4 text-muted-foreground" />
+        <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Download Excel</span>
       </div>
-      <div className="p-4">
-        <div className="stats-grid">
-          {stats.map((stat, idx) => (
-            <div key={idx} className={cn("summary-stat", stat.bg)} data-testid={`stat-${stat.label.toLowerCase().replace(' ', '-')}`}>
-              <stat.icon className={cn("h-5 w-5 mb-1", stat.color)} />
-              <span className={cn("text-2xl font-bold", stat.color)}>{stat.value}</span>
-              <span className="text-xs uppercase tracking-wider text-muted-foreground mt-1">{stat.label}</span>
-            </div>
-          ))}
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs font-medium mb-1 block">Output Filename</Label>
+          <Input 
+            value={outputFilename} 
+            onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+            placeholder="comparison_report"
+            className="h-9"
+            data-testid="output-filename-input"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">.xlsx will be added automatically</p>
         </div>
+        <Button onClick={onDownload} className="w-full gap-2" disabled={isDownloading} data-testid="download-excel-btn">
+          {isDownloading ? (
+            <><Loader2 className="h-4 w-4 animate-spin" />Downloading...</>
+          ) : (
+            <><Download className="h-4 w-4" />Download Excel File</>
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -267,7 +459,7 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory }) {
           <Trash2 className="h-3 w-3 mr-1" />Clear
         </Button>
       </div>
-      <ScrollArea className="h-[150px]">
+      <ScrollArea className="h-[120px]">
         <div className="space-y-2">
           {history.map((item, idx) => (
             <div 
@@ -283,12 +475,6 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory }) {
               <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>{new Date(item.timestamp).toLocaleString()}</span>
-                <span className="ml-auto">
-                  <span className="text-green-600">{item.same}</span>/
-                  <span className="text-yellow-600">{item.modified}</span>/
-                  <span className="text-blue-600">{item.added}</span>/
-                  <span className="text-red-600">{item.removed}</span>
-                </span>
               </div>
             </div>
           ))}
@@ -312,13 +498,14 @@ function App() {
   const [customPath, setCustomPath] = useState('');
   const [logs, setLogs] = useState([]);
   const [isComparing, setIsComparing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
   const [toolSearch, setToolSearch] = useState('');
   const [outputFilename, setOutputFilename] = useState('comparison_report');
   const [history, setHistory] = useState([]);
 
-  // Load history on mount
   useEffect(() => {
     setHistory(getHistory());
   }, []);
@@ -348,7 +535,6 @@ function App() {
       if (response.data.valid) {
         addLog(`File ${fileNumber} uploaded: ${file.name}`, 'success');
         
-        // Analyze for paths
         const analyzeRes = await axios.get(`${API}/analyze/${response.data.file_id}`);
         if (analyzeRes.data.detected_paths.length > 0) {
           setDetectedPaths(prev => {
@@ -374,7 +560,6 @@ function App() {
     }
   }, [addLog, selectedPath]);
 
-  // Fetch tools when file1 is uploaded
   useEffect(() => {
     const fetchTools = async () => {
       if (!file1?.file_id || compareType !== 'tools') return;
@@ -400,6 +585,7 @@ function App() {
     
     setIsComparing(true);
     setSummary(null);
+    setPreviewData(null);
     addLog('Starting comparison...', 'info');
     
     try {
@@ -417,8 +603,8 @@ function App() {
       
       setSummary(response.data);
       setDownloadUrl(`${API}/download/${response.data.excel_filename}`);
+      setPreviewData(response.data.preview_data);
       
-      // Save to history
       const historyItem = {
         id: Date.now().toString(),
         file1Name: file1.filename,
@@ -433,7 +619,7 @@ function App() {
       };
       setHistory(saveHistory(historyItem));
       
-      toast.success('Comparison complete!');
+      toast.success('Comparison complete! See preview below.');
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message;
       addLog(`Comparison failed: ${errorMsg}`, 'error');
@@ -443,17 +629,14 @@ function App() {
     }
   }, [file1, file2, compareType, customPath, selectedPath, selectedTools, addLog]);
 
-  // Fixed download handler - uses blob instead of window.open
   const handleDownload = useCallback(async () => {
     if (!downloadUrl) return;
     
+    setIsDownloading(true);
     try {
-      addLog('Downloading Excel file...', 'info');
-      const response = await axios.get(downloadUrl, {
-        responseType: 'blob'
-      });
+      addLog('Preparing Excel file for download...', 'info');
+      const response = await axios.get(downloadUrl, { responseType: 'blob' });
       
-      // Create blob link to download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -463,11 +646,13 @@ function App() {
       link.remove();
       window.URL.revokeObjectURL(url);
       
-      addLog('Excel file downloaded successfully', 'success');
-      toast.success('File downloaded!');
+      addLog(`Excel file "${outputFilename}.xlsx" downloaded successfully`, 'success');
+      toast.success(`File saved as "${outputFilename}.xlsx"`);
     } catch (error) {
       addLog('Download failed', 'error');
       toast.error('Failed to download file');
+    } finally {
+      setIsDownloading(false);
     }
   }, [downloadUrl, outputFilename, addLog]);
   
@@ -475,7 +660,7 @@ function App() {
     setFile1(null); setFile2(null);
     setDetectedPaths([]); setTools([]); setSelectedTools(null);
     setCompareType('tools'); setSelectedPath(''); setCustomPath('');
-    setLogs([]); setSummary(null); setDownloadUrl(null);
+    setLogs([]); setSummary(null); setDownloadUrl(null); setPreviewData(null);
     setOutputFilename('comparison_report');
     toast.info('Reset complete');
   };
@@ -550,19 +735,32 @@ function App() {
               </div>
             </section>
 
+            {/* Results Section */}
             {summary && (
-              <section className="animate-fade-in">
-                <SummaryPanel 
-                  summary={summary} 
-                  onDownload={handleDownload} 
+              <section className="animate-fade-in space-y-4">
+                <div className="flex items-center gap-2">
+                  <Table className="h-5 w-5" />
+                  <h2 className="text-lg font-semibold">Comparison Results</h2>
+                </div>
+                
+                {/* Summary Stats */}
+                <SummaryStats summary={summary} />
+                
+                {/* Excel Preview */}
+                <ExcelPreview previewData={previewData} />
+                
+                {/* Download Panel */}
+                <DownloadPanel 
+                  onDownload={handleDownload}
                   outputFilename={outputFilename}
                   setOutputFilename={setOutputFilename}
+                  isDownloading={isDownloading}
                 />
               </section>
             )}
 
             {/* History Panel */}
-            {history.length > 0 && (
+            {history.length > 0 && !summary && (
               <section className="animate-fade-in">
                 <HistoryPanel 
                   history={history} 
@@ -646,7 +844,7 @@ function App() {
                     <span className="text-sm font-medium">Select All</span>
                   </div>
 
-                  <ScrollArea className="h-[200px]">
+                  <ScrollArea className="h-[150px]">
                     <div className="space-y-1">
                       {filteredTools.map((tool, idx) => (
                         <div key={idx} className={cn("tool-item", isToolSelected(tool.name) && "selected")} onClick={() => toggleTool(tool.name)} data-testid={`tool-item-${idx}`}>
@@ -673,12 +871,6 @@ function App() {
                 <><GitCompare className="h-5 w-5" />Compare &amp; Generate Excel</>
               )}
             </Button>
-
-            {downloadUrl && !isComparing && (
-              <Button onClick={handleDownload} variant="outline" className="w-full gap-2" data-testid="quick-download-btn">
-                <Download className="h-4 w-4" />Download Report
-              </Button>
-            )}
           </div>
         </div>
       </main>
