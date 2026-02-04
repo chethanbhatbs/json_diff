@@ -720,7 +720,8 @@ async def compare_files(request: CompareRequest):
             added_count=stats["added_count"],
             removed_count=stats["removed_count"],
             excel_filename=excel_filename,
-            download_url=f"/api/download/{excel_filename}"
+            download_url=f"/api/download/{excel_filename}",
+            preview_data=stats.get("preview_data")
         )
     except Exception as e:
         logger.error(f"Error comparing files: {e}")
