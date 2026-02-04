@@ -27,7 +27,7 @@ const TreeNode = ({ nodeKey, value, depth = 0, searchTerm, expandedPaths, toggle
     
     if (typeof value === 'string') {
       const displayValue = value.length > 50 ? value.substring(0, 50) + '...' : value;
-      return <span className="tree-type-string">"{displayValue}"</span>;
+      return <span className="tree-type-string">&quot;{displayValue}&quot;</span>;
     }
     
     if (Array.isArray(value)) {

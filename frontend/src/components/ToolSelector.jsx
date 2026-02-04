@@ -150,7 +150,7 @@ export const ToolSelector = ({
           
           {filteredTools.length === 0 && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No tools match "{searchTerm}"
+              No tools match &quot;{searchTerm}&quot;
             </div>
           )}
         </div>

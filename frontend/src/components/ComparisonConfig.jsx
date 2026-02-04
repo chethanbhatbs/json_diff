@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Settings, ChevronDown, AlertCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -28,12 +28,13 @@ export const ComparisonConfig = ({
     });
   }, [compareType, selectedPath, customPath, onConfigChange]);
 
-  // Auto-select first detected path
-  useEffect(() => {
-    if (detectedPaths.length > 0 && !selectedPath) {
-      setSelectedPath(detectedPaths[0].path_string);
-    }
-  }, [detectedPaths, selectedPath]);
+  // Auto-select first detected path - use useMemo to derive initial state
+  const initialPath = detectedPaths.length > 0 ? detectedPaths[0].path_string : '';
+  
+  // Set initial path when paths are first detected
+  if (detectedPaths.length > 0 && !selectedPath && initialPath) {
+    setSelectedPath(initialPath);
+  }
 
   return (
     <div className="config-panel" data-testid="comparison-config">
@@ -109,7 +110,7 @@ export const ComparisonConfig = ({
               data-testid="custom-path-input"
             />
             <p className="text-[10px] text-muted-foreground">
-              Use dot notation (data.items) or arrow notation (data -{'>'} items)
+              Use dot notation (data.items) or arrow notation (data -&gt; items)
             </p>
           </div>
         )}
