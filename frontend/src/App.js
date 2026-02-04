@@ -935,16 +935,22 @@ function App() {
     setIsDownloading(true);
     addLog('Downloading Excel file...', 'info');
     try {
-      // Create a direct link to download
+      // Fetch the file as a blob
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = downloadUrl;
+      link.href = url;
       link.download = `${outputFilename || 'comparison_report'}.xlsx`;
-      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      addLog('Excel download initiated', 'success');
-      toast.success(`Downloading ${outputFilename}.xlsx - check your Downloads folder`);
+      window.URL.revokeObjectURL(url);
+      
+      addLog('Excel download complete', 'success');
+      toast.success(`Downloaded ${outputFilename}.xlsx - check your Downloads folder`);
     } catch (error) {
       addLog('Download failed', 'error');
       toast.error('Download failed - try HTML export');
