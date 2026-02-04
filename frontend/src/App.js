@@ -1063,19 +1063,16 @@ function App() {
 </body>
 </html>`;
 
-    // Create and trigger download
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    addLog('HTML file downloaded', 'success');
-    toast.success(`Downloaded ${filename}.html - open with Excel or browser`);
+    // Open in new tab instead of downloading
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(html);
+      newWindow.document.close();
+      addLog('HTML table opened in new tab', 'success');
+      toast.success('HTML table opened in new tab');
+    } else {
+      toast.error('Pop-up blocked - please allow pop-ups');
+    }
   }, [previewData, summary, outputFilename, addLog]);
 
   const handleExportPdf = useCallback(async () => {
