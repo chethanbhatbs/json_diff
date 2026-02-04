@@ -1,34 +1,174 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
-}
+/* App-level styles */
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
-    background-color: #0f0f10;
+/* Main container - no center alignment */
+.app-container {
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    background-color: hsl(var(--background));
+}
+
+/* Header */
+.app-header {
+    border-bottom: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+/* Main content area */
+.app-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+/* Section headers */
+.section-header {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+/* File upload cards */
+.file-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background-color: hsl(var(--card));
+    transition: box-shadow 0.2s ease;
+}
+
+.file-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Config panel */
+.config-panel {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background-color: hsl(var(--card));
+    padding: 1.5rem;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
 }
 
-.App-link {
-    color: #61dafb;
+.status-badge.success {
+    background-color: hsl(142 76% 36% / 0.1);
+    color: hsl(142 76% 36%);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
+.status-badge.error {
+    background-color: hsl(0 84% 60% / 0.1);
+    color: hsl(0 84% 60%);
+}
+
+.status-badge.warning {
+    background-color: hsl(38 92% 50% / 0.1);
+    color: hsl(38 92% 50%);
+}
+
+.status-badge.info {
+    background-color: hsl(217 91% 60% / 0.1);
+    color: hsl(217 91% 60%);
+}
+
+/* Compare button */
+.compare-button {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    font-weight: 500;
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.compare-button:hover:not(:disabled) {
+    background-color: hsl(var(--primary) / 0.9);
+}
+
+.compare-button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.compare-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Results panel */
+.results-panel {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background-color: hsl(var(--card));
+    overflow: hidden;
+}
+
+/* Grid layouts */
+.upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .upload-grid {
+        grid-template-columns: 1fr;
     }
-    to {
-        transform: rotate(360deg);
-    }
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+/* Tool list */
+.tool-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Subtle focus ring */
+*:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+}
+
+/* Loading spinner */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid hsl(var(--muted));
+    border-top-color: hsl(var(--primary));
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Progress bar animation */
+.progress-bar {
+    background: linear-gradient(
+        90deg,
+        hsl(var(--brand)) 0%,
+        hsl(var(--brand) / 0.7) 50%,
+        hsl(var(--brand)) 100%
+    );
+    background-size: 200% 100%;
+    animation: progress-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
