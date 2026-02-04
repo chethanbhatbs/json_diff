@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 
 class JsonCompareAPITester:
-    def __init__(self, base_url="https://json-compare-excel.preview.emergentagent.com"):
+    def __init__(self, base_url="https://compare-json.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
