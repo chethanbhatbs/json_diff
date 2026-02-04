@@ -1213,10 +1213,15 @@ function App() {
   }, [previewData, summary, addLog]);
 
   const handleGoogleSheetsLogin = useCallback(() => {
-    // Trigger login for Google Sheets
-    const redirectUrl = window.location.origin + window.location.pathname;
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  }, []);
+    if (user) {
+      // User is already logged in, show message that Google Sheets export needs separate setup
+      toast.info('Google Sheets export feature is coming soon! For now, please use the "Copy Table" button to paste data into Google Sheets manually.');
+    } else {
+      // Not logged in, trigger main app login
+      const redirectUrl = window.location.origin + window.location.pathname;
+      window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    }
+  }, [user]);
 
   const handleReset = () => {
     setFile1(null); setFile2(null);
