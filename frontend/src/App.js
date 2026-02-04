@@ -505,7 +505,10 @@ function ExcelPreview({ previewData }) {
         </TabsContent>
 
         <TabsContent value="file2" className="m-0">
-          <ScrollArea className="h-[300px]">
+          <div className="flex justify-end p-2 border-b bg-zinc-50">
+            <CopyButton onClick={copyFile2} tabName="file2" />
+          </div>
+          <ScrollArea className="h-[280px]">
             <UITable>
               <TableHeader>
                 <TableRow className="bg-blue-600 hover:bg-blue-600">
