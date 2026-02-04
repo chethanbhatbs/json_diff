@@ -75,6 +75,7 @@ class ComparisonSummary(BaseModel):
     removed_count: int
     excel_filename: str
     download_url: str
+    preview_data: Optional[Dict[str, Any]] = None
 
 # ============== UTILITY FUNCTIONS ==============
 
