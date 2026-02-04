@@ -1412,6 +1412,36 @@ function App() {
     toast.success('All data cleared');
   }, []);
 
+  // Share comparison function
+  const handleShareComparison = useCallback(async () => {
+    if (!summary || !previewData) {
+      toast.error('No comparison to share');
+      return;
+    }
+    
+    setShareDialog({ open: true, shareUrl: '', loading: true });
+    
+    try {
+      const response = await axios.post(`${API}/share`, {
+        file1_name: file1?.filename || 'file1.json',
+        file2_name: file2?.filename || 'file2.json',
+        compare_type: compareType,
+        output_filename: outputFilename,
+        summary: summary,
+        preview_data: previewData,
+        download_url: downloadUrl
+      });
+      
+      const shareUrl = response.data.share_url;
+      setShareDialog({ open: true, shareUrl, loading: false });
+      toast.success('Shareable link generated!');
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to generate share link');
+      setShareDialog({ open: false, shareUrl: '', loading: false });
+    }
+  }, [summary, previewData, file1, file2, compareType, outputFilename, downloadUrl]);
+
   const handleReset = () => {
     setFile1(null); setFile2(null);
     setDetectedPaths([]); setTools([]); setSelectedTools(null);
