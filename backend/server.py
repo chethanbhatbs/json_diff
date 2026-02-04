@@ -459,13 +459,91 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
     
     wb.save(output_path)
     
+    # Build preview data for frontend
+    comparison_data = []
+    differences_data = []
+    file1_tools_data = []
+    file2_tools_data = []
+    
+    for name in all_names:
+        in_file1 = name in tools1_dict
+        in_file2 = name in tools2_dict
+        
+        if in_file1 and in_file2:
+            desc1 = tools1_dict[name].strip()
+            desc2 = tools2_dict[name].strip()
+            desc_same = desc1 == desc2
+            if desc_same:
+                notes = "Same in both"
+                status = "same"
+            else:
+                notes = "Description differs"
+                status = "modified"
+        else:
+            desc_same = None
+            if not in_file1:
+                notes = "Only in File2"
+                status = "added"
+            else:
+                notes = "Only in File1"
+                status = "removed"
+        
+        comparison_data.append({
+            "name": name,
+            "in_file1": in_file1,
+            "in_file2": in_file2,
+            "desc_same": desc_same,
+            "notes": notes,
+            "status": status
+        })
+        
+        # Differences
+        desc1 = tools1_dict.get(name, "")
+        desc2 = tools2_dict.get(name, "")
+        if desc1.strip() != desc2.strip():
+            if not desc1:
+                change_type = "Added in File2"
+            elif not desc2:
+                change_type = "Removed from File2"
+            else:
+                change_type = "Modified"
+            
+            differences_data.append({
+                "name": name,
+                "file1_desc": desc1[:500] + "..." if len(desc1) > 500 else desc1,
+                "file2_desc": desc2[:500] + "..." if len(desc2) > 500 else desc2,
+                "change_type": change_type
+            })
+    
+    # File1 tools
+    for idx, tool in enumerate(normalized_tools1, 1):
+        file1_tools_data.append({
+            "index": idx,
+            "name": tool["name"],
+            "description": tool["description"][:500] + "..." if len(tool["description"]) > 500 else tool["description"]
+        })
+    
+    # File2 tools
+    for idx, tool in enumerate(normalized_tools2, 1):
+        file2_tools_data.append({
+            "index": idx,
+            "name": tool["name"],
+            "description": tool["description"][:500] + "..." if len(tool["description"]) > 500 else tool["description"]
+        })
+    
     return {
         "file1_tools": len(tools1_dict),
         "file2_tools": len(tools2_dict),
         "same_count": same_count,
         "modified_count": modified_count,
         "added_count": added_count,
-        "removed_count": removed_count
+        "removed_count": removed_count,
+        "preview_data": {
+            "comparison": comparison_data,
+            "differences": differences_data,
+            "file1_tools": file1_tools_data,
+            "file2_tools": file2_tools_data
+        }
     }
 
 # ============== API ENDPOINTS ==============
