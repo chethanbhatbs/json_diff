@@ -1033,6 +1033,7 @@ function App() {
                 {/* Download Panel */}
                 <DownloadPanel 
                   onDownload={handleDownload}
+                  onExportHtml={handleExportHtml}
                   outputFilename={outputFilename}
                   setOutputFilename={setOutputFilename}
                   isDownloading={isDownloading}
