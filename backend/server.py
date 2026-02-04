@@ -601,6 +601,24 @@ async def compare_files(request: CompareRequest):
             # Compare entire JSON as single "tool"
             tools1 = [{"name": "Entire JSON", "description": json.dumps(data1, indent=2)}]
             tools2 = [{"name": "Entire JSON", "description": json.dumps(data2, indent=2)}]
+        elif request.compare_type == "system":
+            # Compare system configuration - look for system-related keys
+            system_keys = ["system", "systemPrompt", "system_prompt", "config", "configuration"]
+            tools1 = []
+            tools2 = []
+            for key in system_keys:
+                if key in data1:
+                    val = data1[key]
+                    tools1.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
+                if key in data2:
+                    val = data2[key]
+                    tools2.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
+            # If no system keys found, compare top-level keys
+            if not tools1 and not tools2:
+                for key, val in data1.items():
+                    tools1.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
+                for key, val in data2.items():
+                    tools2.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
         elif request.compare_type == "custom" and request.custom_path:
             tools1, _ = extract_tools(data1, request.custom_path)
             tools2, _ = extract_tools(data2, request.custom_path)
