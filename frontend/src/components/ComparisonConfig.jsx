@@ -92,7 +92,7 @@ export const ComparisonConfig = ({
             <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-yellow-700">
               <p className="font-medium">No tool paths detected</p>
-              <p className="mt-1">The standard tool paths were not found. Try using "Custom Path" to specify the location manually.</p>
+              <p className="mt-1">The standard tool paths were not found. Try using &quot;Custom Path&quot; to specify the location manually.</p>
             </div>
           </div>
         )}
