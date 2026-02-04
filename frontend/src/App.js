@@ -1495,6 +1495,25 @@ function App() {
             </>
             )}
 
+            {file1?.valid && file2?.valid && (
+              <div className="border rounded-lg bg-card p-4">
+                <Label className="text-sm font-medium mb-2 block">
+                  Output Filename <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  value={outputFilename} 
+                  onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                  placeholder="Enter filename (required)"
+                  className={cn("h-10", !outputFilename.trim() && "border-red-300")}
+                  data-testid="output-filename-input"
+                  required
+                />
+                {!outputFilename.trim() && (
+                  <p className="text-xs text-red-500 mt-1.5">⚠️ Filename is required to proceed</p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Button onClick={handleCompare} disabled={!canCompare} className="w-full h-12 text-base gap-2" data-testid="compare-btn">
                 {isComparing ? <><Loader2 className="h-5 w-5 animate-spin" />Comparing...</> : <><GitCompare className="h-5 w-5" />Compare &amp; Generate</>}
