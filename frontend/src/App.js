@@ -862,6 +862,7 @@ function App() {
   const [history, setHistory] = useState([]);
   const [user, setUser] = useState(null);
   const [editDialog, setEditDialog] = useState({ open: false, fileId: null, filename: '', fileNumber: null });
+  const [comparisonFilter, setComparisonFilter] = useState('all'); // all, added, removed, modified, same
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') || 'light';
