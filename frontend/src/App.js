@@ -1413,11 +1413,12 @@ function App() {
           </div>
 
           <div className="space-y-6 print:hidden">
-            <section>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Settings2 className="h-5 w-5" />Configuration
-              </h2>
-              <div className="config-panel" data-testid="comparison-config">
+            {file1?.valid && file2?.valid && (
+              <section>
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />Configuration
+                </h2>
+                <div className="config-panel" data-testid="comparison-config">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-xs font-medium">What to Compare</Label>
