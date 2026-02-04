@@ -933,63 +933,267 @@ function App() {
   const handleDownload = useCallback(async () => {
     if (!downloadUrl) return;
     setIsDownloading(true);
+    addLog('Downloading Excel file...', 'info');
     try {
-      const response = await axios.get(downloadUrl, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Create a direct link to download
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${outputFilename || 'comparison_report'}.xlsx`);
+      link.href = downloadUrl;
+      link.download = `${outputFilename || 'comparison_report'}.xlsx`;
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success(`Downloaded ${outputFilename}.xlsx`);
+      document.body.removeChild(link);
+      addLog('Excel download initiated', 'success');
+      toast.success(`Downloading ${outputFilename}.xlsx - check your Downloads folder`);
     } catch (error) {
+      addLog('Download failed', 'error');
       toast.error('Download failed - try HTML export');
     } finally {
       setIsDownloading(false);
     }
-  }, [downloadUrl, outputFilename]);
+  }, [downloadUrl, outputFilename, addLog]);
 
   const handleExportHtml = useCallback(() => {
     if (!previewData || !summary) return;
     const filename = outputFilename || 'comparison_report';
-    // Generate HTML content (simplified for space)
-    const html = `<!DOCTYPE html><html><head><title>${filename}</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}th{background:#4472C4;color:white}.added{background:#D4F4DD}.removed{background:#FFC7CE}.modified{background:#FFEB9C}</style></head><body><h1>JSON Comparison Report</h1><p>Generated: ${new Date().toLocaleString()}</p><h2>Summary</h2><p>File 1: ${summary.file1_tools} tools | File 2: ${summary.file2_tools} tools | Same: ${summary.same_count} | Modified: ${summary.modified_count} | Added: ${summary.added_count} | Removed: ${summary.removed_count}</p><h2>Comparison</h2><table><tr><th>Tool</th><th>File1</th><th>File2</th><th>Same?</th><th>Notes</th></tr>${previewData.comparison?.map(r=>`<tr class="${r.status}"><td>${r.name}</td><td>${r.in_file1?'✓':'✗'}</td><td>${r.in_file2?'✓':'✗'}</td><td>${r.desc_same===true?'✓':r.desc_same===false?'✗':'N/A'}</td><td>${r.notes}</td></tr>`).join('')}</table></body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
+    
+    // Generate comprehensive HTML
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${filename} - JSON Comparison Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    h1 { color: #333; border-bottom: 2px solid #4472C4; padding-bottom: 10px; }
+    h2 { color: #4472C4; margin-top: 30px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
+    th { background-color: #4472C4; color: white; padding: 12px 8px; text-align: left; }
+    td { padding: 10px 8px; border: 1px solid #ddd; vertical-align: top; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .same { background-color: #C6EFCE; }
+    .modified { background-color: #FFEB9C; }
+    .added { background-color: #D4F4DD; }
+    .removed { background-color: #FFC7CE; }
+    .yes { background-color: #C6EFCE; text-align: center; }
+    .no { background-color: #FFC7CE; text-align: center; }
+    .summary-grid { display: flex; gap: 15px; flex-wrap: wrap; margin: 20px 0; }
+    .stat-box { padding: 15px 25px; border-radius: 8px; text-align: center; min-width: 100px; }
+    .stat-value { font-size: 28px; font-weight: bold; }
+    .stat-label { font-size: 11px; color: #666; text-transform: uppercase; }
+    .word-added { background-color: #C6EFCE; padding: 2px 4px; border-radius: 3px; }
+    .word-removed { background-color: #FFC7CE; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; }
+    pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 12px; font-family: monospace; }
+    .instructions { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4472C4; }
+  </style>
+</head>
+<body>
+  <h1>JSON Comparison Report</h1>
+  <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+  
+  <div class="instructions">
+    <strong>💡 Tip:</strong> Press <kbd>Ctrl+S</kbd> (or <kbd>Cmd+S</kbd> on Mac) to save this file. 
+    You can open the saved .html file with Microsoft Excel or copy tables into Google Sheets.
+  </div>
+  
+  <div class="summary-grid">
+    <div class="stat-box" style="background:#f0f0f0"><div class="stat-value">${summary.file1_tools}</div><div class="stat-label">File 1 Tools</div></div>
+    <div class="stat-box" style="background:#f0f0f0"><div class="stat-value">${summary.file2_tools}</div><div class="stat-label">File 2 Tools</div></div>
+    <div class="stat-box" style="background:#C6EFCE"><div class="stat-value">${summary.same_count}</div><div class="stat-label">Same</div></div>
+    <div class="stat-box" style="background:#FFEB9C"><div class="stat-value">${summary.modified_count}</div><div class="stat-label">Modified</div></div>
+    <div class="stat-box" style="background:#D4F4DD"><div class="stat-value">${summary.added_count}</div><div class="stat-label">Added</div></div>
+    <div class="stat-box" style="background:#FFC7CE"><div class="stat-value">${summary.removed_count}</div><div class="stat-label">Removed</div></div>
+  </div>
+
+  <h2>Comparison Summary</h2>
+  <table>
+    <tr><th>Tool Name</th><th>In File1</th><th>In File2</th><th>Same?</th><th>Notes</th></tr>
+    ${previewData.comparison?.map(r => `
+      <tr class="${r.status}">
+        <td><strong>${r.name}</strong></td>
+        <td class="${r.in_file1 ? 'yes' : 'no'}">${r.in_file1 ? '✓ Yes' : '✗ No'}</td>
+        <td class="${r.in_file2 ? 'yes' : 'no'}">${r.in_file2 ? '✓ Yes' : '✗ No'}</td>
+        <td class="${r.desc_same === true ? 'yes' : r.desc_same === false ? 'modified' : ''}">${r.desc_same === true ? '✓ Yes' : r.desc_same === false ? '✗ No' : 'N/A'}</td>
+        <td>${r.notes}</td>
+      </tr>
+    `).join('') || ''}
+  </table>
+
+  <h2>Differences (Word-Level)</h2>
+  <table>
+    <tr><th style="width:150px">Tool Name</th><th>File1 Description</th><th>File2 Description</th><th style="width:100px">Change Type</th></tr>
+    ${previewData.differences?.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:20px">No differences found - all items are identical</td></tr>' : 
+      previewData.differences?.map(r => `
+        <tr>
+          <td><strong>${r.name}</strong></td>
+          <td>${r.file1_diff?.map(d => d.type === 'removed' ? `<span class="word-removed">${d.text}</span>` : d.text).join(' ') || r.file1_desc || '-'}</td>
+          <td>${r.file2_diff?.map(d => d.type === 'added' ? `<span class="word-added">${d.text}</span>` : d.text).join(' ') || r.file2_desc || '-'}</td>
+          <td class="${r.change_type === 'Added in File2' ? 'added' : r.change_type === 'Removed from File2' ? 'removed' : 'modified'}">${r.change_type}</td>
+        </tr>
+      `).join('') || ''}
+  </table>
+
+  <h2>File 1 Tools (${previewData.file1_tools?.length || 0})</h2>
+  <table>
+    <tr><th style="width:40px">#</th><th style="width:200px">Tool Name</th><th>Description</th></tr>
+    ${previewData.file1_tools?.map(r => `
+      <tr>
+        <td>${r.index}</td>
+        <td><strong>${r.name}</strong></td>
+        <td><pre>${r.description}</pre></td>
+      </tr>
+    `).join('') || ''}
+  </table>
+
+  <h2>File 2 Tools (${previewData.file2_tools?.length || 0})</h2>
+  <table>
+    <tr><th style="width:40px">#</th><th style="width:200px">Tool Name</th><th>Description</th></tr>
+    ${previewData.file2_tools?.map(r => `
+      <tr>
+        <td>${r.index}</td>
+        <td><strong>${r.name}</strong></td>
+        <td><pre>${r.description}</pre></td>
+      </tr>
+    `).join('') || ''}
+  </table>
+
+  <footer style="margin-top:40px;padding-top:20px;border-top:1px solid #ddd;color:#666;font-size:12px;">
+    Generated by JSON Compare Tool
+  </footer>
+</body>
+</html>`;
+
+    // Create and trigger download
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    toast.success('HTML opened - press Ctrl+S to save');
-  }, [previewData, summary, outputFilename]);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    addLog('HTML file downloaded', 'success');
+    toast.success(`Downloaded ${filename}.html - open with Excel or browser`);
+  }, [previewData, summary, outputFilename, addLog]);
 
   const handleExportPdf = useCallback(async () => {
-    if (!previewRef.current) return;
+    if (!previewRef.current || !previewData || !summary) {
+      toast.error('No data to export');
+      return;
+    }
+    
     try {
-      toast.info('Generating PDF...');
-      const canvas = await html2canvas(previewRef.current, { scale: 2 });
+      toast.info('Generating PDF... please wait');
+      addLog('Generating PDF...', 'info');
+      
+      const canvas = await html2canvas(previewRef.current, { 
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('l', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${outputFilename || 'comparison_report'}.pdf`);
-      toast.success('PDF downloaded');
+      
+      // Add title
+      pdf.setFontSize(16);
+      pdf.text('JSON Comparison Report', 10, 15);
+      pdf.setFontSize(10);
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, 22);
+      
+      // Add image
+      if (pdfHeight > pdf.internal.pageSize.getHeight() - 30) {
+        pdf.addImage(imgData, 'PNG', 5, 28, pdfWidth - 10, pdf.internal.pageSize.getHeight() - 35);
+      } else {
+        pdf.addImage(imgData, 'PNG', 5, 28, pdfWidth - 10, pdfHeight);
+      }
+      
+      const filename = `${outputFilename || 'comparison_report'}.pdf`;
+      pdf.save(filename);
+      
+      addLog('PDF downloaded', 'success');
+      toast.success(`Downloaded ${filename} - check your Downloads folder`);
     } catch (error) {
-      toast.error('PDF generation failed');
+      console.error('PDF generation error:', error);
+      addLog('PDF generation failed', 'error');
+      toast.error('PDF generation failed - try HTML export instead');
     }
-  }, [outputFilename]);
+  }, [outputFilename, previewData, summary, addLog]);
 
   const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
-
-  const handleExportGoogleSheets = useCallback(() => {
-    if (!user) {
-      handleLogin();
+    if (!previewData || !summary) {
+      toast.error('No data to print');
       return;
     }
-    toast.info('Google Sheets export coming soon!');
-  }, [user]);
+    
+    // Create a print-friendly window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Pop-up blocked - please allow pop-ups');
+      return;
+    }
+    
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>JSON Comparison Report - Print</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+    h1 { font-size: 18px; margin-bottom: 5px; }
+    h2 { font-size: 14px; margin-top: 20px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { border: 1px solid #333; padding: 6px; text-align: left; }
+    th { background-color: #f0f0f0; font-weight: bold; }
+    .summary { display: flex; gap: 20px; margin: 15px 0; }
+    .stat { text-align: center; padding: 10px; border: 1px solid #ccc; }
+    .stat-value { font-size: 20px; font-weight: bold; }
+    .stat-label { font-size: 10px; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <h1>JSON Comparison Report</h1>
+  <p>Generated: ${new Date().toLocaleString()}</p>
+  
+  <div class="summary">
+    <div class="stat"><div class="stat-value">${summary.file1_tools}</div><div class="stat-label">File 1</div></div>
+    <div class="stat"><div class="stat-value">${summary.file2_tools}</div><div class="stat-label">File 2</div></div>
+    <div class="stat"><div class="stat-value">${summary.same_count}</div><div class="stat-label">Same</div></div>
+    <div class="stat"><div class="stat-value">${summary.modified_count}</div><div class="stat-label">Modified</div></div>
+    <div class="stat"><div class="stat-value">${summary.added_count}</div><div class="stat-label">Added</div></div>
+    <div class="stat"><div class="stat-value">${summary.removed_count}</div><div class="stat-label">Removed</div></div>
+  </div>
+
+  <h2>Comparison</h2>
+  <table>
+    <tr><th>Tool Name</th><th>In File1</th><th>In File2</th><th>Same?</th><th>Notes</th></tr>
+    ${previewData.comparison?.map(r => `<tr><td>${r.name}</td><td>${r.in_file1 ? '✓' : '✗'}</td><td>${r.in_file2 ? '✓' : '✗'}</td><td>${r.desc_same === true ? '✓' : r.desc_same === false ? '✗' : 'N/A'}</td><td>${r.notes}</td></tr>`).join('')}
+  </table>
+
+  <h2>Differences</h2>
+  <table>
+    <tr><th>Tool Name</th><th>Change Type</th></tr>
+    ${previewData.differences?.map(r => `<tr><td>${r.name}</td><td>${r.change_type}</td></tr>`).join('') || '<tr><td colspan="2">No differences</td></tr>'}
+  </table>
+  
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    addLog('Print dialog opened', 'success');
+  }, [previewData, summary, addLog]);
+
+  const handleGoogleSheetsLogin = useCallback(() => {
+    // Trigger login for Google Sheets
+    const redirectUrl = window.location.origin + window.location.pathname;
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  }, []);
 
   const handleReset = () => {
     setFile1(null); setFile2(null);
