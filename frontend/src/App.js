@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from "react";
 import "@/App.css";
 import axios from "axios";
 import { Button } from "./components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Toaster } from "./components/ui/sonner";
 import { toast } from "sonner";
 import { 
@@ -15,7 +14,6 @@ import {
   Upload,
   Check,
   X,
-  ChevronRight,
   Search,
   Terminal,
   CheckCircle,
@@ -24,7 +22,9 @@ import {
   Equal,
   FileSpreadsheet,
   Filter,
-  AlertCircle
+  History,
+  Trash2,
+  Clock
 } from "lucide-react";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -43,25 +43,65 @@ import { cn } from "./lib/utils";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// History management
+const HISTORY_KEY = 'json_compare_history';
+const MAX_HISTORY_ITEMS = 10;
+
+function getHistory() {
+  try {
+    const stored = localStorage.getItem(HISTORY_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(item) {
+  try {
+    const history = getHistory();
+    const newHistory = [item, ...history.filter(h => h.id !== item.id)].slice(0, MAX_HISTORY_ITEMS);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+    return newHistory;
+  } catch {
+    return [];
+  }
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+}
+
 // File Upload Component
 function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoading }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
   
   const handleDrop = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
+    setError(null);
     const file = e.dataTransfer.files[0];
-    if (file && (file.type === 'application/json' || file.name.endsWith('.json'))) {
-      onFileUploaded(file);
+    if (file) {
+      if (file.name.endsWith('.json') || file.type === 'application/json') {
+        onFileUploaded(file);
+      } else {
+        setError('Please upload a JSON file');
+      }
     }
   };
 
   const handleFileSelect = (e) => {
+    setError(null);
     const file = e.target.files?.[0];
-    if (file) onFileUploaded(file);
+    if (file) {
+      onFileUploaded(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
   };
 
   const formatFileSize = (bytes) => {
@@ -71,7 +111,7 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
   };
 
   const isSuccess = uploadedFile?.valid;
-  const isError = uploadedFile?.valid === false;
+  const isError = uploadedFile?.valid === false || error;
 
   return (
     <div className="file-card p-4" data-testid={`file-upload-zone-${fileNumber}`}>
@@ -93,7 +133,14 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
         onClick={() => document.getElementById(`file-input-${fileNumber}`)?.click()}
         data-testid={`dropzone-${fileNumber}`}
       >
-        <input id={`file-input-${fileNumber}`} type="file" accept=".json" className="hidden" onChange={handleFileSelect} />
+        <input 
+          id={`file-input-${fileNumber}`} 
+          type="file" 
+          accept=".json,application/json" 
+          className="hidden" 
+          onChange={handleFileSelect}
+          data-testid={`file-input-${fileNumber}`}
+        />
 
         {isLoading ? (
           <div className="flex flex-col items-center gap-2">
@@ -114,9 +161,9 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
         )}
       </div>
 
-      {uploadedFile?.error && (
+      {(uploadedFile?.error || error) && (
         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-xs text-red-600 font-mono">{uploadedFile.error}</p>
+          <p className="text-xs text-red-600 font-mono">{uploadedFile?.error || error}</p>
         </div>
       )}
     </div>
@@ -151,7 +198,7 @@ function ProgressTerminal({ logs, isProcessing }) {
 }
 
 // Summary Panel Component
-function SummaryPanel({ summary, onDownload }) {
+function SummaryPanel({ summary, onDownload, outputFilename, setOutputFilename }) {
   if (!summary) return null;
 
   const stats = [
@@ -165,14 +212,30 @@ function SummaryPanel({ summary, onDownload }) {
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden" data-testid="summary-panel">
-      <div className="p-4 border-b bg-zinc-50 flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Comparison Complete</h3>
-          <p className="text-sm text-muted-foreground">Excel report generated successfully</p>
+      <div className="p-4 border-b bg-zinc-50">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-lg font-semibold">Comparison Complete</h3>
+            <p className="text-sm text-muted-foreground">Excel report generated successfully</p>
+          </div>
         </div>
-        <Button onClick={onDownload} className="gap-2" data-testid="download-excel-btn">
-          <Download className="h-4 w-4" />Download Excel
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <Label className="text-xs font-medium mb-1 block">Output Filename</Label>
+            <Input 
+              value={outputFilename} 
+              onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+              placeholder="comparison_report"
+              className="h-9"
+              data-testid="output-filename-input"
+            />
+          </div>
+          <div className="pt-5">
+            <Button onClick={onDownload} className="gap-2" data-testid="download-excel-btn">
+              <Download className="h-4 w-4" />Download Excel
+            </Button>
+          </div>
+        </div>
       </div>
       <div className="p-4">
         <div className="stats-grid">
@@ -189,14 +252,58 @@ function SummaryPanel({ summary, onDownload }) {
   );
 }
 
+// History Panel Component
+function HistoryPanel({ history, onLoadHistory, onClearHistory }) {
+  if (history.length === 0) return null;
+
+  return (
+    <div className="config-panel" data-testid="history-panel">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Recent Comparisons</span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClearHistory} className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive">
+          <Trash2 className="h-3 w-3 mr-1" />Clear
+        </Button>
+      </div>
+      <ScrollArea className="h-[150px]">
+        <div className="space-y-2">
+          {history.map((item, idx) => (
+            <div 
+              key={item.id} 
+              className="p-2 rounded border hover:bg-zinc-50 cursor-pointer transition-colors"
+              onClick={() => onLoadHistory(item)}
+              data-testid={`history-item-${idx}`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium truncate">{item.file1Name} vs {item.file2Name}</span>
+                <Badge variant="secondary" className="text-[10px]">{item.compareType}</Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{new Date(item.timestamp).toLocaleString()}</span>
+                <span className="ml-auto">
+                  <span className="text-green-600">{item.same}</span>/
+                  <span className="text-yellow-600">{item.modified}</span>/
+                  <span className="text-blue-600">{item.added}</span>/
+                  <span className="text-red-600">{item.removed}</span>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
 // Main App Component
 function App() {
   const [file1, setFile1] = useState(null);
   const [file2, setFile2] = useState(null);
   const [file1Loading, setFile1Loading] = useState(false);
   const [file2Loading, setFile2Loading] = useState(false);
-  const [file1Structure, setFile1Structure] = useState(null);
-  const [file2Structure, setFile2Structure] = useState(null);
   const [detectedPaths, setDetectedPaths] = useState([]);
   const [tools, setTools] = useState([]);
   const [selectedTools, setSelectedTools] = useState(null);
@@ -208,6 +315,13 @@ function App() {
   const [summary, setSummary] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [toolSearch, setToolSearch] = useState('');
+  const [outputFilename, setOutputFilename] = useState('comparison_report');
+  const [history, setHistory] = useState([]);
+
+  // Load history on mount
+  useEffect(() => {
+    setHistory(getHistory());
+  }, []);
 
   const addLog = useCallback((message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -217,7 +331,6 @@ function App() {
   const handleFileUpload = useCallback(async (file, fileNumber) => {
     const setLoading = fileNumber === 1 ? setFile1Loading : setFile2Loading;
     const setFileData = fileNumber === 1 ? setFile1 : setFile2;
-    const setStructure = fileNumber === 1 ? setFile1Structure : setFile2Structure;
     
     setLoading(true);
     addLog(`Uploading ${file.name}...`);
@@ -226,14 +339,16 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post(`${API}/upload`, formData);
+      const response = await axios.post(`${API}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
       setFileData(response.data);
       
       if (response.data.valid) {
         addLog(`File ${fileNumber} uploaded: ${file.name}`, 'success');
-        const structureRes = await axios.get(`${API}/structure/${response.data.file_id}`);
-        setStructure(structureRes.data.structure);
         
+        // Analyze for paths
         const analyzeRes = await axios.get(`${API}/analyze/${response.data.file_id}`);
         if (analyzeRes.data.detected_paths.length > 0) {
           setDetectedPaths(prev => {
@@ -243,19 +358,23 @@ function App() {
           if (!selectedPath && analyzeRes.data.detected_paths.length > 0) {
             setSelectedPath(analyzeRes.data.detected_paths[0].path_string);
           }
+          addLog(`Detected ${analyzeRes.data.detected_paths.length} tool paths`);
         }
       } else {
-        addLog(`Invalid JSON in ${file.name}`, 'error');
+        addLog(`Invalid JSON in ${file.name}: ${response.data.error}`, 'error');
         toast.error(`Invalid JSON: ${response.data.error}`);
       }
     } catch (error) {
-      addLog(`Upload failed: ${error.message}`, 'error');
-      toast.error(`Upload failed`);
+      const errorMsg = error.response?.data?.detail || error.message;
+      addLog(`Upload failed: ${errorMsg}`, 'error');
+      toast.error(`Upload failed: ${errorMsg}`);
+      setFileData({ valid: false, error: errorMsg, filename: file.name, size: file.size });
     } finally {
       setLoading(false);
     }
   }, [addLog, selectedPath]);
 
+  // Fetch tools when file1 is uploaded
   useEffect(() => {
     const fetchTools = async () => {
       if (!file1?.file_id || compareType !== 'tools') return;
@@ -298,23 +417,79 @@ function App() {
       
       setSummary(response.data);
       setDownloadUrl(`${API}/download/${response.data.excel_filename}`);
+      
+      // Save to history
+      const historyItem = {
+        id: Date.now().toString(),
+        file1Name: file1.filename,
+        file2Name: file2.filename,
+        compareType,
+        selectedPath: path,
+        same: response.data.same_count,
+        modified: response.data.modified_count,
+        added: response.data.added_count,
+        removed: response.data.removed_count,
+        timestamp: new Date().toISOString()
+      };
+      setHistory(saveHistory(historyItem));
+      
       toast.success('Comparison complete!');
     } catch (error) {
-      addLog(`Comparison failed: ${error.message}`, 'error');
-      toast.error(`Comparison failed`);
+      const errorMsg = error.response?.data?.detail || error.message;
+      addLog(`Comparison failed: ${errorMsg}`, 'error');
+      toast.error(`Comparison failed: ${errorMsg}`);
     } finally {
       setIsComparing(false);
     }
   }, [file1, file2, compareType, customPath, selectedPath, selectedTools, addLog]);
 
-  const handleDownload = () => { if (downloadUrl) window.open(downloadUrl, '_blank'); };
+  // Fixed download handler - uses blob instead of window.open
+  const handleDownload = useCallback(async () => {
+    if (!downloadUrl) return;
+    
+    try {
+      addLog('Downloading Excel file...', 'info');
+      const response = await axios.get(downloadUrl, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${outputFilename || 'comparison_report'}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      addLog('Excel file downloaded successfully', 'success');
+      toast.success('File downloaded!');
+    } catch (error) {
+      addLog('Download failed', 'error');
+      toast.error('Failed to download file');
+    }
+  }, [downloadUrl, outputFilename, addLog]);
   
   const handleReset = () => {
-    setFile1(null); setFile2(null); setFile1Structure(null); setFile2Structure(null);
+    setFile1(null); setFile2(null);
     setDetectedPaths([]); setTools([]); setSelectedTools(null);
     setCompareType('tools'); setSelectedPath(''); setCustomPath('');
     setLogs([]); setSummary(null); setDownloadUrl(null);
+    setOutputFilename('comparison_report');
     toast.info('Reset complete');
+  };
+
+  const handleClearHistory = () => {
+    clearHistory();
+    setHistory([]);
+    toast.info('History cleared');
+  };
+
+  const handleLoadHistory = (item) => {
+    setCompareType(item.compareType);
+    if (item.selectedPath) setSelectedPath(item.selectedPath);
+    toast.info(`Loaded settings from: ${item.file1Name} vs ${item.file2Name}`);
   };
 
   const filteredTools = tools.filter(t => t.name.toLowerCase().includes(toolSearch.toLowerCase()));
@@ -377,7 +552,23 @@ function App() {
 
             {summary && (
               <section className="animate-fade-in">
-                <SummaryPanel summary={summary} onDownload={handleDownload} />
+                <SummaryPanel 
+                  summary={summary} 
+                  onDownload={handleDownload} 
+                  outputFilename={outputFilename}
+                  setOutputFilename={setOutputFilename}
+                />
+              </section>
+            )}
+
+            {/* History Panel */}
+            {history.length > 0 && (
+              <section className="animate-fade-in">
+                <HistoryPanel 
+                  history={history} 
+                  onLoadHistory={handleLoadHistory}
+                  onClearHistory={handleClearHistory}
+                />
               </section>
             )}
           </div>
