@@ -1,5 +1,5 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException, Request, Response
+from fastapi.responses import FileResponse, JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -8,12 +8,14 @@ import json
 import tempfile
 import uuid
 import difflib
+import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from motor.motor_asyncio import AsyncIOMotorClient
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -27,6 +29,15 @@ api_router = APIRouter(prefix="/api")
 # Temp storage for uploaded files and generated reports
 TEMP_DIR = Path(tempfile.gettempdir()) / "json_compare"
 TEMP_DIR.mkdir(exist_ok=True)
+
+# Max file size: 30 MB
+MAX_FILE_SIZE = 30 * 1024 * 1024
+
+# MongoDB setup
+MONGO_URL = os.environ.get('MONGO_URL')
+DB_NAME = os.environ.get('DB_NAME', 'test_database')
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
 
 # Configure logging
 logging.basicConfig(
@@ -62,9 +73,9 @@ class Tool(BaseModel):
 class CompareRequest(BaseModel):
     file1_id: str
     file2_id: str
-    compare_type: str  # "tools", "system", "entire", "custom"
+    compare_type: str
     custom_path: Optional[str] = None
-    selected_tools: Optional[List[str]] = None  # None means all tools
+    selected_tools: Optional[List[str]] = None
 
 class ComparisonSummary(BaseModel):
     file1_tools: int
@@ -76,6 +87,87 @@ class ComparisonSummary(BaseModel):
     excel_filename: str
     download_url: str
     preview_data: Optional[Dict[str, Any]] = None
+
+class HistoryItem(BaseModel):
+    id: str
+    file1_name: str
+    file2_name: str
+    compare_type: str
+    timestamp: str
+    file1_tools: int
+    file2_tools: int
+    same_count: int
+    modified_count: int
+    added_count: int
+    removed_count: int
+    preview_data: Optional[Dict[str, Any]] = None
+
+class SaveHistoryRequest(BaseModel):
+    file1_name: str
+    file2_name: str
+    compare_type: str
+    file1_tools: int
+    file2_tools: int
+    same_count: int
+    modified_count: int
+    added_count: int
+    removed_count: int
+    preview_data: Dict[str, Any]
+
+class GoogleSheetsExportRequest(BaseModel):
+    access_token: str
+    spreadsheet_title: str
+    preview_data: Dict[str, Any]
+
+class User(BaseModel):
+    user_id: str
+    email: str
+    name: str
+    picture: Optional[str] = None
+
+# ============== AUTH FUNCTIONS ==============
+
+async def get_current_user(request: Request) -> Optional[User]:
+    """Get current user from session token in cookie or Authorization header."""
+    session_token = request.cookies.get("session_token")
+    
+    if not session_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            session_token = auth_header[7:]
+    
+    if not session_token:
+        return None
+    
+    try:
+        session_doc = await db.user_sessions.find_one(
+            {"session_token": session_token},
+            {"_id": 0}
+        )
+        
+        if not session_doc:
+            return None
+        
+        expires_at = session_doc.get("expires_at")
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if expires_at < datetime.now(timezone.utc):
+            return None
+        
+        user_doc = await db.users.find_one(
+            {"user_id": session_doc["user_id"]},
+            {"_id": 0}
+        )
+        
+        if not user_doc:
+            return None
+        
+        return User(**user_doc)
+    except Exception as e:
+        logger.error(f"Auth error: {e}")
+        return None
 
 # ============== UTILITY FUNCTIONS ==============
 
@@ -125,8 +217,7 @@ def find_array_paths(data: Any, current_path: List[str] = None, results: List[To
                 path_string=" -> ".join(current_path) if current_path else "root",
                 tool_count=len(data)
             ))
-        # Also check nested arrays
-        for item in data[:1]:  # Only check first item
+        for item in data[:1]:
             if isinstance(item, dict):
                 for key, value in item.items():
                     find_array_paths(value, current_path + ["[0]", key], results)
@@ -147,7 +238,6 @@ def extract_tools(data: Dict, custom_path: Optional[str] = None) -> Tuple[List[D
     paths_to_try = []
     
     if custom_path:
-        # Parse custom path like "log.body.tools" or "log -> body -> tools"
         if " -> " in custom_path:
             paths_to_try = [custom_path.split(" -> ")]
         else:
@@ -191,6 +281,43 @@ def normalize_tool(tool: Dict, index: int) -> Dict:
         "description": description,
         "raw": tool
     }
+
+def get_word_diff(text1: str, text2: str) -> Tuple[List[Dict], List[Dict]]:
+    """
+    Get word-level diff between two texts.
+    Returns lists of {text, type} where type is 'same', 'added', or 'removed'.
+    """
+    words1 = text1.split() if text1 else []
+    words2 = text2.split() if text2 else []
+    
+    matcher = difflib.SequenceMatcher(None, words1, words2)
+    
+    diff1 = []  # For file1 (shows removals)
+    diff2 = []  # For file2 (shows additions)
+    
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal':
+            text = ' '.join(words1[i1:i2])
+            if text:
+                diff1.append({"text": text, "type": "same"})
+                diff2.append({"text": text, "type": "same"})
+        elif tag == 'delete':
+            text = ' '.join(words1[i1:i2])
+            if text:
+                diff1.append({"text": text, "type": "removed"})
+        elif tag == 'insert':
+            text = ' '.join(words2[j1:j2])
+            if text:
+                diff2.append({"text": text, "type": "added"})
+        elif tag == 'replace':
+            text1_part = ' '.join(words1[i1:i2])
+            text2_part = ' '.join(words2[j1:j2])
+            if text1_part:
+                diff1.append({"text": text1_part, "type": "removed"})
+            if text2_part:
+                diff2.append({"text": text2_part, "type": "added"})
+    
+    return diff1, diff2
 
 def get_text_diff_detailed(text1: str, text2: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
     """Compare two texts and return word-level chunks with their status."""
@@ -459,7 +586,7 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
     
     wb.save(output_path)
     
-    # Build preview data for frontend
+    # Build preview data with word-level diffs
     comparison_data = []
     differences_data = []
     file1_tools_data = []
@@ -497,25 +624,31 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
             "status": status
         })
         
-        # Differences
+        # Differences with word-level diff
         desc1 = tools1_dict.get(name, "")
         desc2 = tools2_dict.get(name, "")
         if desc1.strip() != desc2.strip():
             if not desc1:
                 change_type = "Added in File2"
+                diff1 = []
+                diff2 = [{"text": desc2, "type": "added"}]
             elif not desc2:
                 change_type = "Removed from File2"
+                diff1 = [{"text": desc1, "type": "removed"}]
+                diff2 = []
             else:
                 change_type = "Modified"
+                diff1, diff2 = get_word_diff(desc1, desc2)
             
             differences_data.append({
                 "name": name,
                 "file1_desc": desc1[:500] + "..." if len(desc1) > 500 else desc1,
                 "file2_desc": desc2[:500] + "..." if len(desc2) > 500 else desc2,
+                "file1_diff": diff1,
+                "file2_diff": diff2,
                 "change_type": change_type
             })
     
-    # File1 tools
     for idx, tool in enumerate(normalized_tools1, 1):
         file1_tools_data.append({
             "index": idx,
@@ -523,7 +656,6 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
             "description": tool["description"][:500] + "..." if len(tool["description"]) > 500 else tool["description"]
         })
     
-    # File2 tools
     for idx, tool in enumerate(normalized_tools2, 1):
         file2_tools_data.append({
             "index": idx,
@@ -546,11 +678,189 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
         }
     }
 
+# ============== AUTH ENDPOINTS ==============
+
+@api_router.post("/auth/session")
+async def create_session(request: Request, response: Response):
+    """Exchange session_id for session_token and user data."""
+    try:
+        body = await request.json()
+        session_id = body.get("session_id")
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id required")
+        
+        # Call Emergent auth service
+        async with httpx.AsyncClient() as client:
+            auth_response = await client.get(
+                "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+                headers={"X-Session-ID": session_id}
+            )
+        
+        if auth_response.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid session")
+        
+        user_data = auth_response.json()
+        
+        # Create or update user
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        existing_user = await db.users.find_one({"email": user_data["email"]}, {"_id": 0})
+        
+        if existing_user:
+            user_id = existing_user["user_id"]
+        else:
+            await db.users.insert_one({
+                "user_id": user_id,
+                "email": user_data["email"],
+                "name": user_data["name"],
+                "picture": user_data.get("picture"),
+                "created_at": datetime.now(timezone.utc)
+            })
+        
+        # Create session
+        session_token = user_data["session_token"]
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        
+        await db.user_sessions.delete_many({"user_id": user_id})
+        await db.user_sessions.insert_one({
+            "user_id": user_id,
+            "session_token": session_token,
+            "expires_at": expires_at,
+            "created_at": datetime.now(timezone.utc)
+        })
+        
+        # Set cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            path="/",
+            secure=True,
+            httponly=True,
+            samesite="none",
+            max_age=7 * 24 * 60 * 60
+        )
+        
+        return {
+            "user_id": user_id,
+            "email": user_data["email"],
+            "name": user_data["name"],
+            "picture": user_data.get("picture")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Session creation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/auth/me")
+async def get_me(request: Request):
+    """Get current user data."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+@api_router.post("/auth/logout")
+async def logout(request: Request, response: Response):
+    """Logout user."""
+    session_token = request.cookies.get("session_token")
+    if session_token:
+        await db.user_sessions.delete_many({"session_token": session_token})
+    
+    response.delete_cookie(key="session_token", path="/")
+    return {"message": "Logged out"}
+
+# ============== HISTORY ENDPOINTS ==============
+
+@api_router.get("/history")
+async def get_history(request: Request):
+    """Get comparison history for current user."""
+    user = await get_current_user(request)
+    
+    if user:
+        # User is logged in - get from database
+        history = await db.comparison_history.find(
+            {"user_id": user.user_id},
+            {"_id": 0}
+        ).sort("timestamp", -1).limit(10).to_list(10)
+        return {"history": history, "source": "database"}
+    else:
+        # Not logged in - return empty (frontend uses localStorage)
+        return {"history": [], "source": "localStorage"}
+
+@api_router.post("/history")
+async def save_history(request: Request, data: SaveHistoryRequest):
+    """Save comparison to history."""
+    user = await get_current_user(request)
+    
+    history_id = f"hist_{uuid.uuid4().hex[:12]}"
+    history_item = {
+        "id": history_id,
+        "user_id": user.user_id if user else None,
+        "file1_name": data.file1_name,
+        "file2_name": data.file2_name,
+        "compare_type": data.compare_type,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "file1_tools": data.file1_tools,
+        "file2_tools": data.file2_tools,
+        "same_count": data.same_count,
+        "modified_count": data.modified_count,
+        "added_count": data.added_count,
+        "removed_count": data.removed_count,
+        "preview_data": data.preview_data
+    }
+    
+    if user:
+        await db.comparison_history.insert_one(history_item)
+        
+        # Keep only last 10
+        count = await db.comparison_history.count_documents({"user_id": user.user_id})
+        if count > 10:
+            oldest = await db.comparison_history.find(
+                {"user_id": user.user_id},
+                {"_id": 1}
+            ).sort("timestamp", 1).limit(count - 10).to_list(count - 10)
+            if oldest:
+                await db.comparison_history.delete_many(
+                    {"_id": {"$in": [doc["_id"] for doc in oldest]}}
+                )
+    
+    return {"id": history_id, "saved": True}
+
+@api_router.delete("/history/{history_id}")
+async def delete_history(history_id: str, request: Request):
+    """Delete a history item."""
+    user = await get_current_user(request)
+    if user:
+        await db.comparison_history.delete_one({"id": history_id, "user_id": user.user_id})
+    return {"deleted": True}
+
+@api_router.delete("/history")
+async def clear_history(request: Request):
+    """Clear all history."""
+    user = await get_current_user(request)
+    if user:
+        await db.comparison_history.delete_many({"user_id": user.user_id})
+    return {"cleared": True}
+
 # ============== API ENDPOINTS ==============
 
 @api_router.get("/")
 async def root():
-    return {"message": "JSON Comparison Tool API"}
+    return {
+        "message": "JSON Comparison Tool API",
+        "max_file_size": MAX_FILE_SIZE,
+        "max_file_size_mb": MAX_FILE_SIZE // (1024 * 1024)
+    }
+
+@api_router.get("/config")
+async def get_config():
+    """Get app configuration."""
+    return {
+        "max_file_size": MAX_FILE_SIZE,
+        "max_file_size_mb": MAX_FILE_SIZE // (1024 * 1024),
+        "max_history_items": 10
+    }
 
 @api_router.post("/upload", response_model=JsonUploadResponse)
 async def upload_json(file: UploadFile = File(...)):
@@ -560,6 +870,16 @@ async def upload_json(file: UploadFile = File(...)):
     try:
         content = await file.read()
         size = len(content)
+        
+        # Check file size
+        if size > MAX_FILE_SIZE:
+            return JsonUploadResponse(
+                file_id=file_id,
+                filename=file.filename,
+                size=size,
+                valid=False,
+                error=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)} MB"
+            )
         
         # Validate JSON
         try:
@@ -578,7 +898,6 @@ async def upload_json(file: UploadFile = File(...)):
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f)
         
-        # Get structure
         structure = get_json_structure(data)
         
         return JsonUploadResponse(
@@ -590,6 +909,60 @@ async def upload_json(file: UploadFile = File(...)):
         )
     except Exception as e:
         logger.error(f"Error uploading file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/upload-content")
+async def upload_json_content(request: Request):
+    """Upload JSON content directly (for edit mode)."""
+    try:
+        body = await request.json()
+        content = body.get("content", "")
+        filename = body.get("filename", "edited.json")
+        
+        file_id = str(uuid.uuid4())
+        
+        # Parse JSON
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            return {
+                "file_id": file_id,
+                "filename": filename,
+                "size": len(content),
+                "valid": False,
+                "error": f"Invalid JSON: {str(e)} at line {e.lineno}"
+            }
+        
+        # Save to temp storage
+        file_path = TEMP_DIR / f"{file_id}.json"
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f)
+        
+        return {
+            "file_id": file_id,
+            "filename": filename,
+            "size": len(content),
+            "valid": True,
+            "structure": get_json_structure(data)
+        }
+    except Exception as e:
+        logger.error(f"Error uploading content: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/file-content/{file_id}")
+async def get_file_content(file_id: str):
+    """Get the JSON content of an uploaded file."""
+    file_path = TEMP_DIR / f"{file_id}.json"
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return {"content": content}
+    except Exception as e:
+        logger.error(f"Error reading file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/analyze/{file_id}", response_model=AnalyzeResponse)
@@ -604,10 +977,8 @@ async def analyze_json(file_id: str):
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        # Find all array paths
         array_paths = find_array_paths(data)
         
-        # Also check predefined tool paths
         detected_paths = []
         for path in TOOL_PATHS:
             try:
@@ -623,9 +994,7 @@ async def analyze_json(file_id: str):
             except (KeyError, TypeError):
                 continue
         
-        # Combine and deduplicate
         all_paths = {p.path_string: p for p in detected_paths + array_paths}
-        
         structure = get_json_structure(data)
         
         return AnalyzeResponse(
@@ -661,10 +1030,10 @@ async def get_tools(file_id: str, path: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/compare", response_model=ComparisonSummary)
-async def compare_files(request: CompareRequest):
+async def compare_files(request_data: CompareRequest):
     """Compare two JSON files and generate Excel report."""
-    file1_path = TEMP_DIR / f"{request.file1_id}.json"
-    file2_path = TEMP_DIR / f"{request.file2_id}.json"
+    file1_path = TEMP_DIR / f"{request_data.file1_id}.json"
+    file2_path = TEMP_DIR / f"{request_data.file2_id}.json"
     
     if not file1_path.exists() or not file2_path.exists():
         raise HTTPException(status_code=404, detail="One or both files not found")
@@ -676,12 +1045,10 @@ async def compare_files(request: CompareRequest):
             data2 = json.load(f)
         
         # Extract tools based on compare type
-        if request.compare_type == "entire":
-            # Compare entire JSON as single "tool"
+        if request_data.compare_type == "entire":
             tools1 = [{"name": "Entire JSON", "description": json.dumps(data1, indent=2)}]
             tools2 = [{"name": "Entire JSON", "description": json.dumps(data2, indent=2)}]
-        elif request.compare_type == "system":
-            # Compare system configuration - look for system-related keys
+        elif request_data.compare_type == "system":
             system_keys = ["system", "systemPrompt", "system_prompt", "config", "configuration"]
             tools1 = []
             tools2 = []
@@ -692,17 +1059,15 @@ async def compare_files(request: CompareRequest):
                 if key in data2:
                     val = data2[key]
                     tools2.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
-            # If no system keys found, compare top-level keys
             if not tools1 and not tools2:
                 for key, val in data1.items():
                     tools1.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
                 for key, val in data2.items():
                     tools2.append({"name": key, "description": json.dumps(val, indent=2) if isinstance(val, (dict, list)) else str(val)})
-        elif request.compare_type == "custom" and request.custom_path:
-            tools1, _ = extract_tools(data1, request.custom_path)
-            tools2, _ = extract_tools(data2, request.custom_path)
+        elif request_data.compare_type == "custom" and request_data.custom_path:
+            tools1, _ = extract_tools(data1, request_data.custom_path)
+            tools2, _ = extract_tools(data2, request_data.custom_path)
         else:
-            # Default: tools
             tools1, _ = extract_tools(data1)
             tools2, _ = extract_tools(data2)
         
@@ -710,7 +1075,7 @@ async def compare_files(request: CompareRequest):
         excel_filename = f"comparison_{uuid.uuid4().hex[:8]}.xlsx"
         excel_path = TEMP_DIR / excel_filename
         
-        stats = create_excel_comparison(tools1, tools2, request.selected_tools, str(excel_path))
+        stats = create_excel_comparison(tools1, tools2, request_data.selected_tools, str(excel_path))
         
         return ComparisonSummary(
             file1_tools=stats["file1_tools"],
@@ -764,12 +1129,11 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.on_event("shutdown")
 async def shutdown_cleanup():
-    # Clean up temp files on shutdown (optional)
     pass
