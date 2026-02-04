@@ -865,6 +865,77 @@ async def clear_history(request: Request):
         await db.comparison_history.delete_many({"user_id": user.user_id})
     return {"cleared": True}
 
+
+# ============== SHARE ENDPOINTS ==============
+
+class ShareComparisonRequest(BaseModel):
+    """Request model for sharing a comparison."""
+    file1_name: str
+    file2_name: str
+    compare_type: str
+    output_filename: str
+    summary: Dict[str, Any]
+    preview_data: Dict[str, Any]
+    download_url: Optional[str] = None
+
+@api_router.post("/share")
+async def share_comparison(request: Request, data: ShareComparisonRequest):
+    """Save comparison and generate shareable link."""
+    share_id = f"share_{uuid.uuid4().hex[:16]}"
+    user = await get_current_user(request)
+    
+    shared_item = {
+        "id": share_id,
+        "user_id": user.user_id if user else None,
+        "file1_name": data.file1_name,
+        "file2_name": data.file2_name,
+        "compare_type": data.compare_type,
+        "output_filename": data.output_filename,
+        "summary": data.summary,
+        "preview_data": data.preview_data,
+        "download_url": data.download_url,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+        "view_count": 0
+    }
+    
+    await db.shared_comparisons.insert_one(shared_item)
+    
+    # Generate shareable URL
+    base_url = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:3000')
+    share_url = f"{base_url}/shared/{share_id}"
+    
+    return {
+        "share_id": share_id,
+        "share_url": share_url,
+        "expires_at": shared_item["expires_at"]
+    }
+
+@api_router.get("/shared/{share_id}")
+async def get_shared_comparison(share_id: str):
+    """Get shared comparison data."""
+    shared_item = await db.shared_comparisons.find_one(
+        {"id": share_id},
+        {"_id": 0}
+    )
+    
+    if not shared_item:
+        raise HTTPException(status_code=404, detail="Shared comparison not found or expired")
+    
+    # Check if expired
+    expires_at = datetime.fromisoformat(shared_item["expires_at"])
+    if datetime.now(timezone.utc) > expires_at:
+        await db.shared_comparisons.delete_one({"id": share_id})
+        raise HTTPException(status_code=410, detail="Shared comparison has expired")
+    
+    # Increment view count
+    await db.shared_comparisons.update_one(
+        {"id": share_id},
+        {"$inc": {"view_count": 1}}
+    )
+    
+    return shared_item
+
 # ============== API ENDPOINTS ==============
 
 @api_router.get("/")
