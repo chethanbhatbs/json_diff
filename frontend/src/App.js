@@ -232,30 +232,49 @@ function ExcelPreview({ previewData }) {
     return 'bg-yellow-100 text-yellow-700';
   };
 
-  // Helper function to copy with fallback
-  const copyToClipboard = async (text, tabName, successMsg) => {
+  // Helper function to copy HTML table to clipboard (works better with Google Sheets)
+  const copyTableToClipboard = async (headers, rows, tabName, successMsg) => {
+    // Create HTML table for rich paste
+    let html = '<table>';
+    html += '<tr>' + headers.map(h => `<td><b>${h}</b></td>`).join('') + '</tr>';
+    rows.forEach(row => {
+      html += '<tr>' + row.map(cell => `<td>${String(cell || '').replace(/\n/g, ' ')}</td>`).join('') + '</tr>';
+    });
+    html += '</table>';
+    
+    // Also create plain text version (tab-separated)
+    const plainText = [headers, ...rows].map(row => row.map(cell => String(cell || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t')).join('\n');
+    
     try {
-      await navigator.clipboard.writeText(text);
+      // Try to write both HTML and text formats
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
       setCopiedTab(tabName);
       toast.success(successMsg);
     } catch (err) {
-      // Fallback: Create a textarea, copy, then remove
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      textarea.style.top = '0';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
+      // Fallback to plain text
       try {
-        document.execCommand('copy');
+        await navigator.clipboard.writeText(plainText);
         setCopiedTab(tabName);
         toast.success(successMsg);
       } catch (e) {
-        toast.error('Copy failed. Please select and copy manually.');
+        // Final fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = plainText;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setCopiedTab(tabName);
+        toast.success(successMsg);
       }
-      document.body.removeChild(textarea);
     }
     setTimeout(() => setCopiedTab(null), 2000);
   };
