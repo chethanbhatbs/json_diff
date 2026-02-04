@@ -834,6 +834,7 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory 
           ))}
         </div>
       </ScrollArea>
+      )}
     </div>
   );
 }
