@@ -1153,7 +1153,7 @@ function App() {
     .stat { text-align: center; padding: 8px; border: 1px solid #ccc; min-width: 80px; }
     .stat-value { font-size: 18px; font-weight: bold; }
     .stat-label { font-size: 9px; }
-    pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 9px; font-family: monospace; }
+    .file-header { font-size: 12px; color: #666; margin-top: 10px; margin-bottom: 5px; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .page-break { page-break-before: always; }
@@ -1188,15 +1188,17 @@ function App() {
   <div class="page-break"></div>
   
   <h2>File 1 Tools (${previewData.file1_tools?.length || 0})</h2>
+  <div class="file-header">File: ${file1?.name || 'file1.json'}</div>
   <table>
     <tr><th style="width:30px">#</th><th style="width:150px">Tool Name</th><th>Description</th></tr>
-    ${previewData.file1_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td><pre>${r.description}</pre></td></tr>`).join('')}
+    ${previewData.file1_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td>${r.description || '-'}</td></tr>`).join('')}
   </table>
 
   <h2>File 2 Tools (${previewData.file2_tools?.length || 0})</h2>
+  <div class="file-header">File: ${file2?.name || 'file2.json'}</div>
   <table>
     <tr><th style="width:30px">#</th><th style="width:150px">Tool Name</th><th>Description</th></tr>
-    ${previewData.file2_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td><pre>${r.description}</pre></td></tr>`).join('')}
+    ${previewData.file2_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td>${r.description || '-'}</td></tr>`).join('')}
   </table>
   
   <script>window.onload = function() { window.print(); }</script>
@@ -1205,9 +1207,8 @@ function App() {
     
     printWindow.document.write(html);
     printWindow.document.close();
-    addLog('Print dialog opened', 'success');
     toast.success('Print preview opened');
-  }, [previewData, summary, addLog]);
+  }, [previewData, summary, file1, file2]);
 
   const handleGoogleSheetsLogin = useCallback(() => {
     if (user) {
