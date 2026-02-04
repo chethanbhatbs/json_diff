@@ -617,9 +617,19 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
             desc1 = tools1_dict[name].strip()
             desc2 = tools2_dict[name].strip()
             desc_same = desc1 == desc2
+            
+            # Check for whitespace-only differences
+            desc1_raw = tools1_dict[name]
+            desc2_raw = tools2_dict[name]
+            whitespace_only = (desc1 == desc2 and desc1_raw != desc2_raw)
+            
             if desc_same:
-                notes = "Same in both"
-                status = "same"
+                if whitespace_only:
+                    notes = "Whitespace differs (spaces/indentation)"
+                    status = "modified"
+                else:
+                    notes = "Same in both"
+                    status = "same"
             else:
                 notes = "Description differs"
                 status = "modified"
@@ -636,7 +646,7 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
             "name": name,
             "in_file1": in_file1,
             "in_file2": in_file2,
-            "desc_same": desc_same,
+            "desc_same": desc_same if not whitespace_only else False,
             "notes": notes,
             "status": status
         })
