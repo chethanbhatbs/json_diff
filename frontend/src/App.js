@@ -179,18 +179,21 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
   const isError = uploadedFile?.valid === false || error;
 
   return (
-    <div className="file-card p-4" data-testid={`file-upload-zone-${fileNumber}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{label}</span>
+    <div className="border rounded-lg p-6 bg-card transition-all duration-200" data-testid={`file-upload-zone-${fileNumber}`}>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
         <div className="flex items-center gap-2">
           {uploadedFile?.valid && (
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onEdit} data-testid={`edit-file-${fileNumber}`}>
-              <Edit3 className="h-3 w-3 mr-1" />Edit
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onEdit} data-testid={`edit-file-${fileNumber}`}>
+              <Edit3 className="h-3.5 w-3.5 mr-1" />Edit
             </Button>
           )}
           {uploadedFile && (
-            <span className={cn("status-badge", isSuccess ? "success" : "error")}>
-              {isSuccess ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+            <span className={cn(
+              "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium",
+              isSuccess ? "bg-diff-added-bg text-diff-added-text border border-diff-added-border" : "bg-diff-removed-bg text-diff-removed-text border border-diff-removed-border"
+            )}>
+              {isSuccess ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
               {isSuccess ? 'Valid JSON' : 'Invalid'}
             </span>
           )}
@@ -198,7 +201,14 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
       </div>
 
       <div
-        className={cn("upload-zone", isDragging && "active", isSuccess && "success", isError && "error")}
+        className={cn(
+          "relative border-2 border-dashed rounded-lg p-8 transition-all duration-200 cursor-pointer",
+          "hover:border-primary/50 hover:bg-accent/50",
+          isDragging && "border-primary bg-accent scale-[1.02]",
+          isSuccess && "border-diff-added-border bg-diff-added-bg/20",
+          isError && "border-diff-removed-border bg-diff-removed-bg/20",
+          !isDragging && !isSuccess && !isError && "border-border"
+        )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -215,14 +225,16 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
         />
 
         {isLoading ? (
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
-            <span className="text-sm text-muted-foreground">Processing...</span>
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-10 w-10 text-primary animate-spin" />
+            <span className="text-sm font-medium text-muted-foreground">Processing...</span>
           </div>
         ) : uploadedFile?.valid ? (
-          <div className="flex flex-col items-center gap-2">
-            <FileJson className="h-8 w-8 text-green-600" />
-            <span className="text-sm font-medium truncate max-w-full px-2">{uploadedFile.filename}</span>
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 rounded-full bg-diff-added-bg border border-diff-added-border">
+              <FileJson className="h-8 w-8 text-diff-added-text" />
+            </div>
+            <span className="text-sm font-semibold text-foreground truncate max-w-full px-2">{uploadedFile.filename}</span>
             <span className="text-xs text-muted-foreground">{formatFileSize(uploadedFile.size)}</span>
           </div>
         ) : (
