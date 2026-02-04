@@ -284,29 +284,20 @@ def normalize_tool(tool: Dict, index: int) -> Dict:
 
 def get_word_diff(text1: str, text2: str) -> Tuple[List[Dict], List[Dict]]:
     """
-    Get word-level diff between two texts with whitespace detection.
+    Get word-level diff between two texts.
     Returns lists of {text, type} where type is 'same', 'added', or 'removed'.
-    Detects and highlights whitespace differences (spaces, tabs, newlines).
+    Compares word-by-word including spaces, special characters, and numbers.
     """
-    # First check if texts are identical
+    # Check if texts are identical
     if text1 == text2:
         return ([{"text": text1, "type": "same"}] if text1 else [], 
                 [{"text": text2, "type": "same"}] if text2 else [])
     
-    # Check if difference is only whitespace (normalize and compare)
-    normalized1 = ' '.join(text1.split())
-    normalized2 = ' '.join(text2.split())
-    
-    if normalized1 == normalized2 and text1 != text2:
-        # Whitespace-only difference - show with visible markers
-        diff1 = [{"text": text1.replace('  ', '[2 spaces]').replace('\t', '[tab]').replace('\n', '[newline]'), "type": "removed"}]
-        diff2 = [{"text": text2.replace('  ', '[2 spaces]').replace('\t', '[tab]').replace('\n', '[newline]'), "type": "added"}]
-        return diff1, diff2
-    
-    # Word-level diff (splits on whitespace)
+    # Split into words (preserves special characters and numbers in words)
     words1 = text1.split() if text1 else []
     words2 = text2.split() if text2 else []
     
+    # Use SequenceMatcher for word-by-word comparison
     matcher = difflib.SequenceMatcher(None, words1, words2)
     
     diff1 = []  # For file1 (shows removals)
@@ -314,19 +305,23 @@ def get_word_diff(text1: str, text2: str) -> Tuple[List[Dict], List[Dict]]:
     
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == 'equal':
+            # Same words in both
             text = ' '.join(words1[i1:i2])
             if text:
                 diff1.append({"text": text, "type": "same"})
                 diff2.append({"text": text, "type": "same"})
         elif tag == 'delete':
+            # Words only in file1 (removed)
             text = ' '.join(words1[i1:i2])
             if text:
                 diff1.append({"text": text, "type": "removed"})
         elif tag == 'insert':
+            # Words only in file2 (added)
             text = ' '.join(words2[j1:j2])
             if text:
                 diff2.append({"text": text, "type": "added"})
         elif tag == 'replace':
+            # Different words
             text1_part = ' '.join(words1[i1:i2])
             text2_part = ' '.join(words2[j1:j2])
             if text1_part:
