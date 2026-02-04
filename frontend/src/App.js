@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import "@/App.css";
 import axios from "axios";
 import { Button } from "./components/ui/button";
@@ -26,16 +26,24 @@ import {
   History,
   Trash2,
   Clock,
-  Table,
   Eye,
   Copy,
-  ClipboardCopy
+  ClipboardCopy,
+  Printer,
+  FileText,
+  Edit3,
+  Save,
+  LogIn,
+  LogOut,
+  User,
+  ExternalLink
 } from "lucide-react";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Checkbox } from "./components/ui/checkbox";
 import { Badge } from "./components/ui/badge";
 import { ScrollArea } from "./components/ui/scroll-area";
+import { Textarea } from "./components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -51,16 +59,29 @@ import {
   TableHeader,
   TableRow,
 } from "./components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./components/ui/dialog";
 import { cn } from "./lib/utils";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// History management
-const HISTORY_KEY = 'json_compare_history';
+// Max file size: 30 MB
+const MAX_FILE_SIZE = 30 * 1024 * 1024;
+const MAX_FILE_SIZE_MB = 30;
 const MAX_HISTORY_ITEMS = 10;
 
-function getHistory() {
+// History management with localStorage
+const HISTORY_KEY = 'json_compare_history';
+
+function getLocalHistory() {
   try {
     const stored = localStorage.getItem(HISTORY_KEY);
     return stored ? JSON.parse(stored) : [];
@@ -69,9 +90,9 @@ function getHistory() {
   }
 }
 
-function saveHistory(item) {
+function saveLocalHistory(item) {
   try {
-    const history = getHistory();
+    const history = getLocalHistory();
     const newHistory = [item, ...history.filter(h => h.id !== item.id)].slice(0, MAX_HISTORY_ITEMS);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     return newHistory;
@@ -80,12 +101,34 @@ function saveHistory(item) {
   }
 }
 
-function clearHistory() {
+function clearLocalHistory() {
   localStorage.removeItem(HISTORY_KEY);
 }
 
-// File Upload Component
-function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoading }) {
+// Word Diff Component - Highlights individual words
+function WordDiff({ diff }) {
+  if (!diff || diff.length === 0) return <span className="text-muted-foreground">-</span>;
+  
+  return (
+    <span className="whitespace-pre-wrap">
+      {diff.map((item, idx) => (
+        <span
+          key={idx}
+          className={cn(
+            item.type === 'added' && 'bg-green-200 text-green-900 px-0.5 rounded',
+            item.type === 'removed' && 'bg-red-200 text-red-900 px-0.5 rounded line-through',
+            item.type === 'same' && ''
+          )}
+        >
+          {item.text}{' '}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// File Upload Component with Edit option
+function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoading, onEdit }) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState(null);
 
@@ -99,6 +142,10 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
     setError(null);
     const file = e.dataTransfer.files[0];
     if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File too large. Maximum size is ${MAX_FILE_SIZE_MB} MB`);
+        return;
+      }
       if (file.name.endsWith('.json') || file.type === 'application/json') {
         onFileUploaded(file);
       } else {
@@ -111,6 +158,10 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
     setError(null);
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File too large. Maximum size is ${MAX_FILE_SIZE_MB} MB`);
+        return;
+      }
       onFileUploaded(file);
     }
     e.target.value = '';
@@ -129,12 +180,19 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
     <div className="file-card p-4" data-testid={`file-upload-zone-${fileNumber}`}>
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{label}</span>
-        {uploadedFile && (
-          <span className={cn("status-badge", isSuccess ? "success" : "error")}>
-            {isSuccess ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-            {isSuccess ? 'Valid JSON' : 'Invalid'}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {uploadedFile?.valid && (
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={onEdit} data-testid={`edit-file-${fileNumber}`}>
+              <Edit3 className="h-3 w-3 mr-1" />Edit
+            </Button>
+          )}
+          {uploadedFile && (
+            <span className={cn("status-badge", isSuccess ? "success" : "error")}>
+              {isSuccess ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+              {isSuccess ? 'Valid JSON' : 'Invalid'}
+            </span>
+          )}
+        </div>
       </div>
 
       <div
@@ -166,9 +224,10 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
             <span className="text-xs text-muted-foreground">{formatFileSize(uploadedFile.size)}</span>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <Upload className="h-8 w-8 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Drop JSON file or click to browse</span>
+            <span className="text-[10px] text-muted-foreground">Max size: {MAX_FILE_SIZE_MB} MB</span>
           </div>
         )}
       </div>
@@ -182,6 +241,85 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
   );
 }
 
+// Edit File Dialog
+function EditFileDialog({ isOpen, onClose, fileId, filename, onSave }) {
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && fileId) {
+      setLoading(true);
+      axios.get(`${API}/file-content/${fileId}`)
+        .then(res => {
+          try {
+            const formatted = JSON.stringify(JSON.parse(res.data.content), null, 2);
+            setContent(formatted);
+          } catch {
+            setContent(res.data.content);
+          }
+          setError(null);
+        })
+        .catch(err => setError('Failed to load file'))
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen, fileId]);
+
+  const handleSave = async () => {
+    try {
+      JSON.parse(content); // Validate
+      setLoading(true);
+      const res = await axios.post(`${API}/upload-content`, { content, filename });
+      if (res.data.valid) {
+        onSave(res.data);
+        onClose();
+        toast.success('File updated');
+      } else {
+        setError(res.data.error);
+      }
+    } catch (e) {
+      setError('Invalid JSON: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Edit {filename}</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="font-mono text-xs h-[400px]"
+              placeholder="JSON content..."
+            />
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-xs text-red-600">{error}</p>
+              </div>
+            )}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} disabled={loading}>
+            <Save className="h-4 w-4 mr-2" />Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Progress Terminal Component
 function ProgressTerminal({ logs, isProcessing }) {
   return (
@@ -191,7 +329,7 @@ function ProgressTerminal({ logs, isProcessing }) {
         <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Progress Log</span>
         {isProcessing && <Loader2 className="h-3 w-3 text-blue-500 animate-spin ml-auto" />}
       </div>
-      <div className="terminal max-h-[150px] overflow-y-auto rounded-none">
+      <div className="terminal max-h-[120px] overflow-y-auto rounded-none">
         {logs.length === 0 ? (
           <div className="text-zinc-500 text-center py-4">Waiting for comparison...</div>
         ) : (
@@ -209,8 +347,8 @@ function ProgressTerminal({ logs, isProcessing }) {
   );
 }
 
-// Excel Preview Component
-function ExcelPreview({ previewData }) {
+// Excel Preview Component with Word Diff
+function ExcelPreview({ previewData, previewRef }) {
   const [activeTab, setActiveTab] = useState("comparison");
   const [copiedTab, setCopiedTab] = useState(null);
   
@@ -232,9 +370,7 @@ function ExcelPreview({ previewData }) {
     return 'bg-yellow-100 text-yellow-700';
   };
 
-  // Helper function to copy HTML table to clipboard (works better with Google Sheets)
   const copyTableToClipboard = async (headers, rows, tabName, successMsg) => {
-    // Create HTML table for rich paste
     let html = '<table>';
     html += '<tr>' + headers.map(h => `<td><b>${h}</b></td>`).join('') + '</tr>';
     rows.forEach(row => {
@@ -242,11 +378,9 @@ function ExcelPreview({ previewData }) {
     });
     html += '</table>';
     
-    // Also create plain text version (tab-separated)
     const plainText = [headers, ...rows].map(row => row.map(cell => String(cell || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t')).join('\n');
     
     try {
-      // Try to write both HTML and text formats
       await navigator.clipboard.write([
         new ClipboardItem({
           'text/html': new Blob([html], { type: 'text/html' }),
@@ -256,13 +390,11 @@ function ExcelPreview({ previewData }) {
       setCopiedTab(tabName);
       toast.success(successMsg);
     } catch (err) {
-      // Fallback to plain text
       try {
         await navigator.clipboard.writeText(plainText);
         setCopiedTab(tabName);
         toast.success(successMsg);
       } catch (e) {
-        // Final fallback
         const textarea = document.createElement('textarea');
         textarea.value = plainText;
         textarea.style.position = 'fixed';
@@ -279,119 +411,63 @@ function ExcelPreview({ previewData }) {
     setTimeout(() => setCopiedTab(null), 2000);
   };
 
-  // Copy functions for each tab
   const copyComparison = () => {
     const headers = ['Tool Name', 'In File1', 'In File2', 'Same?', 'Notes'];
     const rows = previewData.comparison?.map(row => [
-      row.name,
-      row.in_file1 ? 'Yes' : 'No',
-      row.in_file2 ? 'Yes' : 'No',
-      row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A',
-      row.notes
+      row.name, row.in_file1 ? 'Yes' : 'No', row.in_file2 ? 'Yes' : 'No',
+      row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A', row.notes
     ]) || [];
-    copyTableToClipboard(headers, rows, 'comparison', 'Copied! Paste into Google Sheets with Ctrl+V');
+    copyTableToClipboard(headers, rows, 'comparison', 'Copied! Paste into Google Sheets.');
   };
 
   const copyDifferences = () => {
     const headers = ['Tool Name', 'File1 Description', 'File2 Description', 'Change Type'];
     const rows = previewData.differences?.map(row => [
-      row.name,
-      row.file1_desc || '',
-      row.file2_desc || '',
-      row.change_type
+      row.name, row.file1_desc || '', row.file2_desc || '', row.change_type
     ]) || [];
-    copyTableToClipboard(headers, rows, 'differences', 'Copied! Paste into Google Sheets with Ctrl+V');
+    copyTableToClipboard(headers, rows, 'differences', 'Copied! Paste into Google Sheets.');
   };
 
   const copyFile1 = () => {
     const headers = ['#', 'Tool Name', 'Description'];
-    const rows = previewData.file1_tools?.map(row => [
-      row.index,
-      row.name,
-      row.description
-    ]) || [];
-    copyTableToClipboard(headers, rows, 'file1', 'Copied! Paste into Google Sheets with Ctrl+V');
+    const rows = previewData.file1_tools?.map(row => [row.index, row.name, row.description]) || [];
+    copyTableToClipboard(headers, rows, 'file1', 'Copied! Paste into Google Sheets.');
   };
 
   const copyFile2 = () => {
     const headers = ['#', 'Tool Name', 'Description'];
-    const rows = previewData.file2_tools?.map(row => [
-      row.index,
-      row.name,
-      row.description
-    ]) || [];
-    copyTableToClipboard(headers, rows, 'file2', 'Copied! Paste into Google Sheets with Ctrl+V');
-  };
-
-  const copyAll = () => {
-    // For "copy all", we'll just copy comparison since it's the main summary
-    const headers = ['Tool Name', 'In File1', 'In File2', 'Same?', 'Notes'];
-    const rows = previewData.comparison?.map(row => [
-      row.name,
-      row.in_file1 ? 'Yes' : 'No',
-      row.in_file2 ? 'Yes' : 'No',
-      row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A',
-      row.notes
-    ]) || [];
-    copyTableToClipboard(headers, rows, 'all', 'Comparison table copied! Paste into Google Sheets.');
+    const rows = previewData.file2_tools?.map(row => [row.index, row.name, row.description]) || [];
+    copyTableToClipboard(headers, rows, 'file2', 'Copied! Paste into Google Sheets.');
   };
 
   const CopyButton = ({ onClick, tabName }) => (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={onClick}
-      className="h-7 px-2 text-xs gap-1"
-      data-testid={`copy-${tabName}-btn`}
-    >
-      {copiedTab === tabName ? (
-        <><Check className="h-3 w-3 text-green-600" />Copied!</>
-      ) : (
-        <><Copy className="h-3 w-3" />Copy</>
-      )}
+    <Button variant="outline" size="sm" onClick={onClick} className="h-7 px-2 text-xs gap-1" data-testid={`copy-${tabName}-btn`}>
+      {copiedTab === tabName ? <><Check className="h-3 w-3 text-green-600" />Copied!</> : <><Copy className="h-3 w-3" />Copy</>}
     </Button>
   );
 
   return (
-    <div className="border rounded-lg bg-card overflow-hidden" data-testid="excel-preview">
+    <div ref={previewRef} className="border rounded-lg bg-card overflow-hidden" data-testid="excel-preview">
       <div className="p-4 border-b bg-zinc-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">Excel Preview</h3>
+            <h3 className="text-lg font-semibold">Comparison Preview</h3>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={copyAll}
-            className="h-8 px-3 text-xs gap-2"
-            data-testid="copy-all-btn"
-          >
-            {copiedTab === 'all' ? (
-              <><Check className="h-3 w-3 text-green-600" />All Copied!</>
-            ) : (
-              <><ClipboardCopy className="h-3 w-3" />Copy All Sheets</>
-            )}
+          <Button variant="outline" size="sm" onClick={copyComparison} className="h-8 px-3 text-xs gap-2" data-testid="copy-all-btn">
+            {copiedTab === 'all' ? <><Check className="h-3 w-3 text-green-600" />Copied!</> : <><ClipboardCopy className="h-3 w-3" />Copy Table</>}
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">Click "Copy" to paste into Google Sheets</p>
+        <p className="text-sm text-muted-foreground mt-1">Click &quot;Copy&quot; to paste into Google Sheets</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="px-4 pt-3 border-b">
           <TabsList className="grid w-full grid-cols-4 h-9">
-            <TabsTrigger value="comparison" className="text-xs">
-              Comparison ({previewData.comparison?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="differences" className="text-xs">
-              Differences ({previewData.differences?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="file1" className="text-xs">
-              File 1 ({previewData.file1_tools?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="file2" className="text-xs">
-              File 2 ({previewData.file2_tools?.length || 0})
-            </TabsTrigger>
+            <TabsTrigger value="comparison" className="text-xs">Comparison ({previewData.comparison?.length || 0})</TabsTrigger>
+            <TabsTrigger value="differences" className="text-xs">Differences ({previewData.differences?.length || 0})</TabsTrigger>
+            <TabsTrigger value="file1" className="text-xs">File 1 ({previewData.file1_tools?.length || 0})</TabsTrigger>
+            <TabsTrigger value="file2" className="text-xs">File 2 ({previewData.file2_tools?.length || 0})</TabsTrigger>
           </TabsList>
         </div>
 
@@ -414,16 +490,9 @@ function ExcelPreview({ previewData }) {
                 {previewData.comparison?.map((row, idx) => (
                   <TableRow key={idx} className={getStatusColor(row.status)}>
                     <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className={cn("text-center", row.in_file1 ? "bg-green-200" : "bg-red-200")}>
-                      {row.in_file1 ? '✓' : '✗'}
-                    </TableCell>
-                    <TableCell className={cn("text-center", row.in_file2 ? "bg-green-200" : "bg-red-200")}>
-                      {row.in_file2 ? '✓' : '✗'}
-                    </TableCell>
-                    <TableCell className={cn("text-center", 
-                      row.desc_same === true ? "bg-green-200" : 
-                      row.desc_same === false ? "bg-yellow-200" : ""
-                    )}>
+                    <TableCell className={cn("text-center", row.in_file1 ? "bg-green-200" : "bg-red-200")}>{row.in_file1 ? '✓' : '✗'}</TableCell>
+                    <TableCell className={cn("text-center", row.in_file2 ? "bg-green-200" : "bg-red-200")}>{row.in_file2 ? '✓' : '✗'}</TableCell>
+                    <TableCell className={cn("text-center", row.desc_same === true ? "bg-green-200" : row.desc_same === false ? "bg-yellow-200" : "")}>
                       {row.desc_same === true ? '✓' : row.desc_same === false ? '✗' : 'N/A'}
                     </TableCell>
                     <TableCell>{row.notes}</TableCell>
@@ -442,28 +511,26 @@ function ExcelPreview({ previewData }) {
             <UITable>
               <TableHeader>
                 <TableRow className="bg-blue-600 hover:bg-blue-600">
-                  <TableHead className="text-white font-bold w-[150px]">Tool Name</TableHead>
-                  <TableHead className="text-white font-bold">File1 Description</TableHead>
-                  <TableHead className="text-white font-bold">File2 Description</TableHead>
-                  <TableHead className="text-white font-bold w-[120px]">Change Type</TableHead>
+                  <TableHead className="text-white font-bold w-[120px]">Tool Name</TableHead>
+                  <TableHead className="text-white font-bold">File1 (Removed in red)</TableHead>
+                  <TableHead className="text-white font-bold">File2 (Added in green)</TableHead>
+                  <TableHead className="text-white font-bold w-[100px]">Change</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {previewData.differences?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                      No differences found - all items are identical
-                    </TableCell>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No differences found</TableCell>
                   </TableRow>
                 ) : (
                   previewData.differences?.map((row, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="font-medium align-top">{row.name}</TableCell>
-                      <TableCell className={cn("text-xs align-top", row.change_type === 'Removed from File2' || row.change_type === 'Modified' ? "bg-red-50" : "")}>
-                        <pre className="whitespace-pre-wrap font-mono">{row.file1_desc || '-'}</pre>
+                      <TableCell className="text-xs align-top">
+                        <WordDiff diff={row.file1_diff} />
                       </TableCell>
-                      <TableCell className={cn("text-xs align-top", row.change_type === 'Added in File2' || row.change_type === 'Modified' ? "bg-green-50" : "")}>
-                        <pre className="whitespace-pre-wrap font-mono">{row.file2_desc || '-'}</pre>
+                      <TableCell className="text-xs align-top">
+                        <WordDiff diff={row.file2_diff} />
                       </TableCell>
                       <TableCell className="align-top">
                         <Badge className={getChangeTypeColor(row.change_type)}>{row.change_type}</Badge>
@@ -494,9 +561,7 @@ function ExcelPreview({ previewData }) {
                   <TableRow key={idx}>
                     <TableCell>{row.index}</TableCell>
                     <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className="text-xs">
-                      <pre className="whitespace-pre-wrap font-mono max-w-[500px]">{row.description}</pre>
-                    </TableCell>
+                    <TableCell className="text-xs"><pre className="whitespace-pre-wrap font-mono max-w-[400px]">{row.description}</pre></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -522,9 +587,7 @@ function ExcelPreview({ previewData }) {
                   <TableRow key={idx}>
                     <TableCell>{row.index}</TableCell>
                     <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className="text-xs">
-                      <pre className="whitespace-pre-wrap font-mono max-w-[500px]">{row.description}</pre>
-                    </TableCell>
+                    <TableCell className="text-xs"><pre className="whitespace-pre-wrap font-mono max-w-[400px]">{row.description}</pre></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -539,7 +602,6 @@ function ExcelPreview({ previewData }) {
 // Summary Stats Component  
 function SummaryStats({ summary }) {
   if (!summary) return null;
-
   const stats = [
     { label: 'File 1', value: summary.file1_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
     { label: 'File 2', value: summary.file2_tools, icon: FileSpreadsheet, color: 'text-zinc-700' },
@@ -548,7 +610,6 @@ function SummaryStats({ summary }) {
     { label: 'Added', value: summary.added_count, icon: Check, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Removed', value: summary.removed_count, icon: X, color: 'text-red-600', bg: 'bg-red-50' },
   ];
-
   return (
     <div className="stats-grid mb-4">
       {stats.map((stat, idx) => (
@@ -562,10 +623,10 @@ function SummaryStats({ summary }) {
   );
 }
 
-// Download Panel Component
-function DownloadPanel({ onDownload, onExportHtml, outputFilename, setOutputFilename, isDownloading }) {
+// Export Panel Component
+function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onExportGoogleSheets, outputFilename, setOutputFilename, isDownloading, user }) {
   return (
-    <div className="border rounded-lg bg-card p-4" data-testid="download-panel">
+    <div className="border rounded-lg bg-card p-4" data-testid="export-panel">
       <div className="flex items-center gap-2 mb-3">
         <Download className="h-4 w-4 text-muted-foreground" />
         <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Export Options</span>
@@ -583,60 +644,89 @@ function DownloadPanel({ onDownload, onExportHtml, outputFilename, setOutputFile
         </div>
         
         <div className="grid grid-cols-2 gap-2">
-          <Button onClick={onDownload} variant="default" className="gap-2" disabled={isDownloading} data-testid="download-excel-btn">
-            {isDownloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            Excel (.xlsx)
+          <Button onClick={onDownload} variant="default" size="sm" className="gap-1.5" disabled={isDownloading} data-testid="download-excel-btn">
+            {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Excel
           </Button>
-          
-          <Button onClick={onExportHtml} variant="outline" className="gap-2" data-testid="export-html-btn">
-            <FileSpreadsheet className="h-4 w-4" />
-            HTML Table
+          <Button onClick={onExportHtml} variant="outline" size="sm" className="gap-1.5" data-testid="export-html-btn">
+            <FileSpreadsheet className="h-3.5 w-3.5" />HTML
+          </Button>
+          <Button onClick={onExportPdf} variant="outline" size="sm" className="gap-1.5" data-testid="export-pdf-btn">
+            <FileText className="h-3.5 w-3.5" />PDF
+          </Button>
+          <Button onClick={onPrint} variant="outline" size="sm" className="gap-1.5" data-testid="print-btn">
+            <Printer className="h-3.5 w-3.5" />Print
           </Button>
         </div>
-        
-        <p className="text-[10px] text-muted-foreground">
-          <strong>Tip:</strong> HTML Table opens in a new tab. Save it as .html and open with Excel, or copy-paste into Google Sheets.
-        </p>
+
+        <div className="pt-2 border-t">
+          <Button 
+            onClick={onExportGoogleSheets} 
+            variant="outline" 
+            size="sm" 
+            className="w-full gap-2" 
+            disabled={!user}
+            data-testid="export-gsheets-btn"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {user ? 'Export to Google Sheets' : 'Login to Export to Google Sheets'}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-// History Panel Component
-function HistoryPanel({ history, onLoadHistory, onClearHistory }) {
+// History Panel with full data
+function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory }) {
   if (history.length === 0) return null;
 
   return (
-    <div className="config-panel" data-testid="history-panel">
-      <div className="flex items-center justify-between mb-4">
+    <div className="border rounded-lg bg-card overflow-hidden" data-testid="history-panel">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-zinc-50">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground" />
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Recent Comparisons</span>
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Comparison History</span>
+          <Badge variant="secondary" className="text-[10px]">{history.length}</Badge>
         </div>
         <Button variant="ghost" size="sm" onClick={onClearHistory} className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive">
-          <Trash2 className="h-3 w-3 mr-1" />Clear
+          <Trash2 className="h-3 w-3 mr-1" />Clear All
         </Button>
       </div>
-      <ScrollArea className="h-[120px]">
-        <div className="space-y-2">
+      <ScrollArea className="h-[200px]">
+        <div className="p-2 space-y-2">
           {history.map((item, idx) => (
             <div 
               key={item.id} 
-              className="p-2 rounded border hover:bg-zinc-50 cursor-pointer transition-colors"
+              className="p-3 rounded border hover:bg-zinc-50 cursor-pointer transition-colors group"
               onClick={() => onLoadHistory(item)}
               data-testid={`history-item-${idx}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium truncate">{item.file1Name} vs {item.file2Name}</span>
-                <Badge variant="secondary" className="text-[10px]">{item.compareType}</Badge>
+                <span className="text-sm font-medium truncate flex-1">{item.file1_name} vs {item.file2_name}</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[10px]">{item.compare_type}</Badge>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); onDeleteHistory(item.id); }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>{new Date(item.timestamp).toLocaleString()}</span>
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{new Date(item.timestamp).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-green-600">{item.same_count} same</span>
+                  <span className="text-yellow-600">{item.modified_count} mod</span>
+                  <span className="text-blue-600">{item.added_count} add</span>
+                  <span className="text-red-600">{item.removed_count} rem</span>
+                </div>
               </div>
             </div>
           ))}
@@ -667,15 +757,64 @@ function App() {
   const [toolSearch, setToolSearch] = useState('');
   const [outputFilename, setOutputFilename] = useState('comparison_report');
   const [history, setHistory] = useState([]);
+  const [user, setUser] = useState(null);
+  const [editDialog, setEditDialog] = useState({ open: false, fileId: null, filename: '', fileNumber: null });
+  const previewRef = useRef(null);
 
+  // Check for session_id in URL (OAuth callback)
   useEffect(() => {
-    setHistory(getHistory());
+    const hash = window.location.hash;
+    if (hash.includes('session_id=')) {
+      const sessionId = hash.split('session_id=')[1]?.split('&')[0];
+      if (sessionId) {
+        axios.post(`${API}/auth/session`, { session_id: sessionId }, { withCredentials: true })
+          .then(res => {
+            setUser(res.data);
+            toast.success(`Welcome, ${res.data.name}!`);
+            window.history.replaceState(null, '', window.location.pathname);
+          })
+          .catch(err => {
+            toast.error('Login failed');
+            window.history.replaceState(null, '', window.location.pathname);
+          });
+      }
+    }
   }, []);
+
+  // Check existing auth
+  useEffect(() => {
+    axios.get(`${API}/auth/me`, { withCredentials: true })
+      .then(res => setUser(res.data))
+      .catch(() => {});
+  }, []);
+
+  // Load history
+  useEffect(() => {
+    if (user) {
+      axios.get(`${API}/history`, { withCredentials: true })
+        .then(res => setHistory(res.data.history || []))
+        .catch(() => setHistory(getLocalHistory()));
+    } else {
+      setHistory(getLocalHistory());
+    }
+  }, [user]);
 
   const addLog = useCallback((message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     setLogs(prev => [...prev, { message, type, timestamp }]);
   }, []);
+
+  const handleLogin = () => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    const redirectUrl = window.location.origin + window.location.pathname;
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+
+  const handleLogout = async () => {
+    await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+    setUser(null);
+    toast.info('Logged out');
+  };
 
   const handleFileUpload = useCallback(async (file, fileNumber) => {
     const setLoading = fileNumber === 1 ? setFile1Loading : setFile2Loading;
@@ -706,16 +845,15 @@ function App() {
           if (!selectedPath && analyzeRes.data.detected_paths.length > 0) {
             setSelectedPath(analyzeRes.data.detected_paths[0].path_string);
           }
-          addLog(`Detected ${analyzeRes.data.detected_paths.length} tool paths`);
         }
       } else {
-        addLog(`Invalid JSON in ${file.name}: ${response.data.error}`, 'error');
-        toast.error(`Invalid JSON: ${response.data.error}`);
+        addLog(`Invalid JSON: ${response.data.error}`, 'error');
+        toast.error(`Invalid JSON`);
       }
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message;
       addLog(`Upload failed: ${errorMsg}`, 'error');
-      toast.error(`Upload failed: ${errorMsg}`);
+      toast.error(`Upload failed`);
       setFileData({ valid: false, error: errorMsg, filename: file.name, size: file.size });
     } finally {
       setLoading(false);
@@ -728,16 +866,11 @@ function App() {
       try {
         const path = compareType === 'custom' ? customPath : selectedPath;
         const res = await axios.get(`${API}/tools/${file1.file_id}`, { params: { path: path || undefined } });
-        if (res.data.tools) {
-          setTools(res.data.tools);
-          addLog(`Found ${res.data.tools.length} tools`);
-        }
-      } catch (error) {
-        console.error('Error fetching tools:', error);
-      }
+        if (res.data.tools) setTools(res.data.tools);
+      } catch (error) {}
     };
     fetchTools();
-  }, [file1?.file_id, selectedPath, customPath, compareType, addLog]);
+  }, [file1?.file_id, selectedPath, customPath, compareType]);
 
   const handleCompare = useCallback(async () => {
     if (!file1?.file_id || !file2?.file_id) {
@@ -761,44 +894,48 @@ function App() {
       });
       
       addLog(`Comparison complete!`, 'success');
-      addLog(`Same: ${response.data.same_count} | Modified: ${response.data.modified_count} | Added: ${response.data.added_count} | Removed: ${response.data.removed_count}`);
-      
       setSummary(response.data);
       setDownloadUrl(`${API}/download/${response.data.excel_filename}`);
       setPreviewData(response.data.preview_data);
       
+      // Save to history
       const historyItem = {
         id: Date.now().toString(),
-        file1Name: file1.filename,
-        file2Name: file2.filename,
-        compareType,
-        selectedPath: path,
-        same: response.data.same_count,
-        modified: response.data.modified_count,
-        added: response.data.added_count,
-        removed: response.data.removed_count,
-        timestamp: new Date().toISOString()
+        file1_name: file1.filename,
+        file2_name: file2.filename,
+        compare_type: compareType,
+        timestamp: new Date().toISOString(),
+        file1_tools: response.data.file1_tools,
+        file2_tools: response.data.file2_tools,
+        same_count: response.data.same_count,
+        modified_count: response.data.modified_count,
+        added_count: response.data.added_count,
+        removed_count: response.data.removed_count,
+        preview_data: response.data.preview_data
       };
-      setHistory(saveHistory(historyItem));
       
-      toast.success('Comparison complete! See preview below.');
+      if (user) {
+        await axios.post(`${API}/history`, historyItem, { withCredentials: true });
+        const histRes = await axios.get(`${API}/history`, { withCredentials: true });
+        setHistory(histRes.data.history || []);
+      } else {
+        setHistory(saveLocalHistory(historyItem));
+      }
+      
+      toast.success('Comparison complete!');
     } catch (error) {
-      const errorMsg = error.response?.data?.detail || error.message;
-      addLog(`Comparison failed: ${errorMsg}`, 'error');
-      toast.error(`Comparison failed: ${errorMsg}`);
+      addLog(`Comparison failed: ${error.message}`, 'error');
+      toast.error(`Comparison failed`);
     } finally {
       setIsComparing(false);
     }
-  }, [file1, file2, compareType, customPath, selectedPath, selectedTools, addLog]);
+  }, [file1, file2, compareType, customPath, selectedPath, selectedTools, addLog, user]);
 
   const handleDownload = useCallback(async () => {
     if (!downloadUrl) return;
-    
     setIsDownloading(true);
     try {
-      addLog('Preparing Excel file for download...', 'info');
       const response = await axios.get(downloadUrl, { responseType: 'blob' });
-      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -807,136 +944,54 @@ function App() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
-      addLog(`Excel file "${outputFilename}.xlsx" downloaded successfully`, 'success');
-      toast.success(`File saved as "${outputFilename}.xlsx"`);
+      toast.success(`Downloaded ${outputFilename}.xlsx`);
     } catch (error) {
-      addLog('Download failed - try HTML export instead', 'error');
-      toast.error('Download failed. Try HTML Table export instead.');
+      toast.error('Download failed - try HTML export');
     } finally {
       setIsDownloading(false);
     }
-  }, [downloadUrl, outputFilename, addLog]);
+  }, [downloadUrl, outputFilename]);
 
-  // Export as HTML - opens in new tab, can be saved and opened in Excel
   const handleExportHtml = useCallback(() => {
-    if (!previewData) return;
-    
+    if (!previewData || !summary) return;
     const filename = outputFilename || 'comparison_report';
-    
-    const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${filename} - JSON Comparison Report</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { color: #333; border-bottom: 2px solid #4472C4; padding-bottom: 10px; }
-    h2 { color: #4472C4; margin-top: 30px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
-    th { background-color: #4472C4; color: white; padding: 10px; text-align: left; border: 1px solid #ddd; }
-    td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    .same { background-color: #C6EFCE; }
-    .modified { background-color: #FFEB9C; }
-    .added { background-color: #D4F4DD; }
-    .removed { background-color: #FFC7CE; }
-    .yes { background-color: #C6EFCE; text-align: center; }
-    .no { background-color: #FFC7CE; text-align: center; }
-    .summary { display: flex; gap: 20px; margin-bottom: 20px; }
-    .stat { padding: 15px 25px; border-radius: 8px; text-align: center; }
-    .stat-value { font-size: 24px; font-weight: bold; }
-    .stat-label { font-size: 12px; color: #666; }
-    pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 12px; }
-    .instructions { background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-  </style>
-</head>
-<body>
-  <h1>JSON Comparison Report</h1>
-  <p>Generated: ${new Date().toLocaleString()}</p>
-  
-  <div class="instructions">
-    <strong>How to use:</strong>
-    <ul>
-      <li>Press Ctrl+S (or Cmd+S) to save this file as .html</li>
-      <li>Open the saved .html file with Microsoft Excel</li>
-      <li>Or select tables below and copy-paste into Google Sheets</li>
-    </ul>
-  </div>
-  
-  <div class="summary">
-    <div class="stat" style="background:#f0f0f0"><div class="stat-value">${summary?.file1_tools || 0}</div><div class="stat-label">File 1 Tools</div></div>
-    <div class="stat" style="background:#f0f0f0"><div class="stat-value">${summary?.file2_tools || 0}</div><div class="stat-label">File 2 Tools</div></div>
-    <div class="stat" style="background:#C6EFCE"><div class="stat-value">${summary?.same_count || 0}</div><div class="stat-label">Same</div></div>
-    <div class="stat" style="background:#FFEB9C"><div class="stat-value">${summary?.modified_count || 0}</div><div class="stat-label">Modified</div></div>
-    <div class="stat" style="background:#D4F4DD"><div class="stat-value">${summary?.added_count || 0}</div><div class="stat-label">Added</div></div>
-    <div class="stat" style="background:#FFC7CE"><div class="stat-value">${summary?.removed_count || 0}</div><div class="stat-label">Removed</div></div>
-  </div>
-
-  <h2>Comparison</h2>
-  <table>
-    <tr><th>Tool Name</th><th>In File1</th><th>In File2</th><th>Same?</th><th>Notes</th></tr>
-    ${previewData.comparison?.map(row => `
-      <tr class="${row.status}">
-        <td>${row.name}</td>
-        <td class="${row.in_file1 ? 'yes' : 'no'}">${row.in_file1 ? '✓' : '✗'}</td>
-        <td class="${row.in_file2 ? 'yes' : 'no'}">${row.in_file2 ? '✓' : '✗'}</td>
-        <td class="${row.desc_same === true ? 'yes' : row.desc_same === false ? 'modified' : ''}">${row.desc_same === true ? '✓' : row.desc_same === false ? '✗' : 'N/A'}</td>
-        <td>${row.notes}</td>
-      </tr>
-    `).join('') || ''}
-  </table>
-
-  <h2>Differences</h2>
-  <table>
-    <tr><th>Tool Name</th><th>File1 Description</th><th>File2 Description</th><th>Change Type</th></tr>
-    ${previewData.differences?.length === 0 ? '<tr><td colspan="4" style="text-align:center">No differences found</td></tr>' : 
-      previewData.differences?.map(row => `
-        <tr>
-          <td>${row.name}</td>
-          <td class="${row.change_type === 'Removed from File2' || row.change_type === 'Modified' ? 'removed' : ''}"><pre>${row.file1_desc || '-'}</pre></td>
-          <td class="${row.change_type === 'Added in File2' || row.change_type === 'Modified' ? 'added' : ''}"><pre>${row.file2_desc || '-'}</pre></td>
-          <td>${row.change_type}</td>
-        </tr>
-      `).join('') || ''}
-  </table>
-
-  <h2>File 1 Tools</h2>
-  <table>
-    <tr><th>#</th><th>Tool Name</th><th>Description</th></tr>
-    ${previewData.file1_tools?.map(row => `
-      <tr>
-        <td>${row.index}</td>
-        <td>${row.name}</td>
-        <td><pre>${row.description}</pre></td>
-      </tr>
-    `).join('') || ''}
-  </table>
-
-  <h2>File 2 Tools</h2>
-  <table>
-    <tr><th>#</th><th>Tool Name</th><th>Description</th></tr>
-    ${previewData.file2_tools?.map(row => `
-      <tr>
-        <td>${row.index}</td>
-        <td>${row.name}</td>
-        <td><pre>${row.description}</pre></td>
-      </tr>
-    `).join('') || ''}
-  </table>
-</body>
-</html>`;
-
-    // Open in new tab
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    // Generate HTML content (simplified for space)
+    const html = `<!DOCTYPE html><html><head><title>${filename}</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}th{background:#4472C4;color:white}.added{background:#D4F4DD}.removed{background:#FFC7CE}.modified{background:#FFEB9C}</style></head><body><h1>JSON Comparison Report</h1><p>Generated: ${new Date().toLocaleString()}</p><h2>Summary</h2><p>File 1: ${summary.file1_tools} tools | File 2: ${summary.file2_tools} tools | Same: ${summary.same_count} | Modified: ${summary.modified_count} | Added: ${summary.added_count} | Removed: ${summary.removed_count}</p><h2>Comparison</h2><table><tr><th>Tool</th><th>File1</th><th>File2</th><th>Same?</th><th>Notes</th></tr>${previewData.comparison?.map(r=>`<tr class="${r.status}"><td>${r.name}</td><td>${r.in_file1?'✓':'✗'}</td><td>${r.in_file2?'✓':'✗'}</td><td>${r.desc_same===true?'✓':r.desc_same===false?'✗':'N/A'}</td><td>${r.notes}</td></tr>`).join('')}</table></body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
-    
-    addLog('HTML report opened in new tab - save with Ctrl+S', 'success');
-    toast.success('HTML report opened! Press Ctrl+S to save, then open with Excel.');
-  }, [previewData, summary, outputFilename, addLog]);
-  
+    toast.success('HTML opened - press Ctrl+S to save');
+  }, [previewData, summary, outputFilename]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!previewRef.current) return;
+    try {
+      toast.info('Generating PDF...');
+      const canvas = await html2canvas(previewRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${outputFilename || 'comparison_report'}.pdf`);
+      toast.success('PDF downloaded');
+    } catch (error) {
+      toast.error('PDF generation failed');
+    }
+  }, [outputFilename]);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleExportGoogleSheets = useCallback(() => {
+    if (!user) {
+      handleLogin();
+      return;
+    }
+    toast.info('Google Sheets export coming soon!');
+  }, [user]);
+
   const handleReset = () => {
     setFile1(null); setFile2(null);
     setDetectedPaths([]); setTools([]); setSelectedTools(null);
@@ -946,46 +1001,76 @@ function App() {
     toast.info('Reset complete');
   };
 
-  const handleClearHistory = () => {
-    clearHistory();
+  const handleClearHistory = async () => {
+    if (user) {
+      await axios.delete(`${API}/history`, { withCredentials: true });
+    } else {
+      clearLocalHistory();
+    }
     setHistory([]);
     toast.info('History cleared');
   };
 
+  const handleDeleteHistory = async (id) => {
+    if (user) {
+      await axios.delete(`${API}/history/${id}`, { withCredentials: true });
+      const res = await axios.get(`${API}/history`, { withCredentials: true });
+      setHistory(res.data.history || []);
+    } else {
+      const newHistory = getLocalHistory().filter(h => h.id !== id);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+      setHistory(newHistory);
+    }
+  };
+
   const handleLoadHistory = (item) => {
-    setCompareType(item.compareType);
-    if (item.selectedPath) setSelectedPath(item.selectedPath);
-    toast.info(`Loaded settings from: ${item.file1Name} vs ${item.file2Name}`);
+    if (item.preview_data) {
+      setPreviewData(item.preview_data);
+      setSummary({
+        file1_tools: item.file1_tools,
+        file2_tools: item.file2_tools,
+        same_count: item.same_count,
+        modified_count: item.modified_count,
+        added_count: item.added_count,
+        removed_count: item.removed_count
+      });
+      setCompareType(item.compare_type);
+      toast.success(`Loaded: ${item.file1_name} vs ${item.file2_name}`);
+    } else {
+      toast.info('No preview data available');
+    }
+  };
+
+  const handleEditSave = (fileData, fileNumber) => {
+    if (fileNumber === 1) setFile1(fileData);
+    else setFile2(fileData);
   };
 
   const filteredTools = tools.filter(t => t.name.toLowerCase().includes(toolSearch.toLowerCase()));
   const isAllSelected = selectedTools === null || (selectedTools && selectedTools.length === tools.length);
-  
-  const toggleAllTools = () => {
-    if (isAllSelected) setSelectedTools([]);
-    else setSelectedTools(null);
-  };
-
+  const toggleAllTools = () => { if (isAllSelected) setSelectedTools([]); else setSelectedTools(null); };
   const toggleTool = (toolName) => {
-    if (selectedTools === null) {
-      setSelectedTools(tools.map(t => t.name).filter(n => n !== toolName));
-    } else if (selectedTools.includes(toolName)) {
-      setSelectedTools(selectedTools.filter(n => n !== toolName));
-    } else {
-      const newSelection = [...selectedTools, toolName];
-      if (newSelection.length === tools.length) setSelectedTools(null);
-      else setSelectedTools(newSelection);
-    }
+    if (selectedTools === null) setSelectedTools(tools.map(t => t.name).filter(n => n !== toolName));
+    else if (selectedTools.includes(toolName)) setSelectedTools(selectedTools.filter(n => n !== toolName));
+    else { const ns = [...selectedTools, toolName]; if (ns.length === tools.length) setSelectedTools(null); else setSelectedTools(ns); }
   };
-
   const isToolSelected = (name) => selectedTools === null || selectedTools.includes(name);
   const canCompare = file1?.valid && file2?.valid && !isComparing;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background print:bg-white">
       <Toaster position="top-right" />
       
-      <header className="border-b bg-background sticky top-0 z-20">
+      {/* Edit Dialog */}
+      <EditFileDialog
+        isOpen={editDialog.open}
+        onClose={() => setEditDialog({ open: false, fileId: null, filename: '', fileNumber: null })}
+        fileId={editDialog.fileId}
+        filename={editDialog.filename}
+        onSave={(data) => handleEditSave(data, editDialog.fileNumber)}
+      />
+      
+      <header className="border-b bg-background sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-zinc-100 rounded-md">
@@ -993,67 +1078,90 @@ function App() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight" data-testid="app-title">JSON Compare</h1>
-              <p className="text-xs text-muted-foreground">Compare JSON files and generate Excel reports</p>
+              <p className="text-xs text-muted-foreground">Max file size: {MAX_FILE_SIZE_MB} MB</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-2" data-testid="reset-btn">
-            <RotateCcw className="h-4 w-4" />Reset
-          </Button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{user.name}</span>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleLogin} className="gap-2" data-testid="login-btn">
+                <LogIn className="h-4 w-4" />Login
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={handleReset} className="gap-2" data-testid="reset-btn">
+              <RotateCcw className="h-4 w-4" />Reset
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           <div className="lg:col-span-2 space-y-6">
-            <section>
+            <section className="print:hidden">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <FileJson className="h-5 w-5" />Upload JSON Files
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FileUploadZone label="JSON File 1" fileNumber={1} onFileUploaded={(f) => handleFileUpload(f, 1)} uploadedFile={file1} isLoading={file1Loading} />
-                <FileUploadZone label="JSON File 2" fileNumber={2} onFileUploaded={(f) => handleFileUpload(f, 2)} uploadedFile={file2} isLoading={file2Loading} />
+                <FileUploadZone 
+                  label="JSON File 1" 
+                  fileNumber={1} 
+                  onFileUploaded={(f) => handleFileUpload(f, 1)} 
+                  uploadedFile={file1} 
+                  isLoading={file1Loading}
+                  onEdit={() => setEditDialog({ open: true, fileId: file1?.file_id, filename: file1?.filename, fileNumber: 1 })}
+                />
+                <FileUploadZone 
+                  label="JSON File 2" 
+                  fileNumber={2} 
+                  onFileUploaded={(f) => handleFileUpload(f, 2)} 
+                  uploadedFile={file2} 
+                  isLoading={file2Loading}
+                  onEdit={() => setEditDialog({ open: true, fileId: file2?.file_id, filename: file2?.filename, fileNumber: 2 })}
+                />
               </div>
             </section>
 
-            {/* Results Section */}
             {summary && (
               <section className="animate-fade-in space-y-4">
-                <div className="flex items-center gap-2">
-                  <Table className="h-5 w-5" />
-                  <h2 className="text-lg font-semibold">Comparison Results</h2>
-                </div>
-                
-                {/* Summary Stats */}
                 <SummaryStats summary={summary} />
-                
-                {/* Excel Preview */}
-                <ExcelPreview previewData={previewData} />
-                
-                {/* Download Panel */}
-                <DownloadPanel 
-                  onDownload={handleDownload}
-                  onExportHtml={handleExportHtml}
-                  outputFilename={outputFilename}
-                  setOutputFilename={setOutputFilename}
-                  isDownloading={isDownloading}
-                />
+                <ExcelPreview previewData={previewData} previewRef={previewRef} />
+                <div className="print:hidden">
+                  <ExportPanel 
+                    onDownload={handleDownload}
+                    onExportHtml={handleExportHtml}
+                    onExportPdf={handleExportPdf}
+                    onPrint={handlePrint}
+                    onExportGoogleSheets={handleExportGoogleSheets}
+                    outputFilename={outputFilename}
+                    setOutputFilename={setOutputFilename}
+                    isDownloading={isDownloading}
+                    user={user}
+                  />
+                </div>
               </section>
             )}
 
-            {/* History Panel */}
-            {history.length > 0 && !summary && (
-              <section className="animate-fade-in">
+            {history.length > 0 && (
+              <section className="print:hidden">
                 <HistoryPanel 
                   history={history} 
                   onLoadHistory={handleLoadHistory}
                   onClearHistory={handleClearHistory}
+                  onDeleteHistory={handleDeleteHistory}
                 />
               </section>
             )}
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 print:hidden">
             <section>
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Settings2 className="h-5 w-5" />Configuration
@@ -1063,9 +1171,7 @@ function App() {
                   <div className="space-y-2">
                     <Label className="text-xs font-medium">What to Compare</Label>
                     <Select value={compareType} onValueChange={setCompareType}>
-                      <SelectTrigger className="h-9" data-testid="compare-type-select">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="h-9" data-testid="compare-type-select"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="tools">Tools</SelectItem>
                         <SelectItem value="system">System</SelectItem>
@@ -1074,25 +1180,19 @@ function App() {
                       </SelectContent>
                     </Select>
                   </div>
-
                   {compareType === 'tools' && detectedPaths.length > 0 && (
                     <div className="space-y-2">
                       <Label className="text-xs font-medium">Tool Path</Label>
                       <Select value={selectedPath} onValueChange={setSelectedPath}>
-                        <SelectTrigger className="h-9" data-testid="path-select">
-                          <SelectValue placeholder="Select path" />
-                        </SelectTrigger>
+                        <SelectTrigger className="h-9" data-testid="path-select"><SelectValue placeholder="Select path" /></SelectTrigger>
                         <SelectContent>
                           {detectedPaths.map((p, i) => (
-                            <SelectItem key={i} value={p.path_string}>
-                              {p.path_string} ({p.tool_count} items)
-                            </SelectItem>
+                            <SelectItem key={i} value={p.path_string}>{p.path_string} ({p.tool_count} items)</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   )}
-
                   {compareType === 'custom' && (
                     <div className="space-y-2">
                       <Label className="text-xs font-medium">Custom Path</Label>
@@ -1111,29 +1211,22 @@ function App() {
                       <Filter className="h-4 w-4 text-muted-foreground" />
                       <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Tool Selection</span>
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {selectedTools === null ? tools.length : selectedTools.length} / {tools.length}
-                    </Badge>
+                    <Badge variant="secondary" className="text-xs">{selectedTools === null ? tools.length : selectedTools.length} / {tools.length}</Badge>
                   </div>
-                  
                   <div className="relative mb-3">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} placeholder="Search tools..." className="pl-9 h-8 text-sm" data-testid="tool-search-input" />
                   </div>
-
                   <div className="tool-item mb-2 border-b pb-2" onClick={toggleAllTools} data-testid="select-all-tools">
                     <Checkbox checked={isAllSelected} className="h-4 w-4" />
                     <span className="text-sm font-medium">Select All</span>
                   </div>
-
-                  <ScrollArea className="h-[150px]">
+                  <ScrollArea className="h-[120px]">
                     <div className="space-y-1">
                       {filteredTools.map((tool, idx) => (
                         <div key={idx} className={cn("tool-item", isToolSelected(tool.name) && "selected")} onClick={() => toggleTool(tool.name)} data-testid={`tool-item-${idx}`}>
                           <Checkbox checked={isToolSelected(tool.name)} className="h-4 w-4" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{tool.name}</div>
-                          </div>
+                          <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{tool.name}</div></div>
                         </div>
                       ))}
                     </div>
@@ -1147,11 +1240,7 @@ function App() {
             </section>
 
             <Button onClick={handleCompare} disabled={!canCompare} className="w-full h-12 text-base gap-2" data-testid="compare-btn">
-              {isComparing ? (
-                <><Loader2 className="h-5 w-5 animate-spin" />Comparing...</>
-              ) : (
-                <><GitCompare className="h-5 w-5" />Compare &amp; Generate Excel</>
-              )}
+              {isComparing ? <><Loader2 className="h-5 w-5 animate-spin" />Comparing...</> : <><GitCompare className="h-5 w-5" />Compare &amp; Generate</>}
             </Button>
           </div>
         </div>
