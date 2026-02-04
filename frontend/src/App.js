@@ -232,6 +232,34 @@ function ExcelPreview({ previewData }) {
     return 'bg-yellow-100 text-yellow-700';
   };
 
+  // Helper function to copy with fallback
+  const copyToClipboard = async (text, tabName, successMsg) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedTab(tabName);
+      toast.success(successMsg);
+    } catch (err) {
+      // Fallback: Create a textarea, copy, then remove
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedTab(tabName);
+        toast.success(successMsg);
+      } catch (e) {
+        toast.error('Copy failed. Please select and copy manually.');
+      }
+      document.body.removeChild(textarea);
+    }
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
   // Copy functions for each tab - creates tab-separated values for Google Sheets
   const copyComparison = () => {
     const headers = ['Tool Name', 'In File1', 'In File2', 'Same?', 'Notes'];
@@ -243,10 +271,7 @@ function ExcelPreview({ previewData }) {
       row.notes
     ]) || [];
     const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
-    navigator.clipboard.writeText(tsv);
-    setCopiedTab('comparison');
-    toast.success('Comparison data copied! Paste into Google Sheets.');
-    setTimeout(() => setCopiedTab(null), 2000);
+    copyToClipboard(tsv, 'comparison', 'Comparison data copied! Paste into Google Sheets.');
   };
 
   const copyDifferences = () => {
@@ -258,10 +283,7 @@ function ExcelPreview({ previewData }) {
       row.change_type
     ]) || [];
     const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
-    navigator.clipboard.writeText(tsv);
-    setCopiedTab('differences');
-    toast.success('Differences data copied! Paste into Google Sheets.');
-    setTimeout(() => setCopiedTab(null), 2000);
+    copyToClipboard(tsv, 'differences', 'Differences data copied! Paste into Google Sheets.');
   };
 
   const copyFile1 = () => {
@@ -272,10 +294,7 @@ function ExcelPreview({ previewData }) {
       row.description
     ]) || [];
     const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
-    navigator.clipboard.writeText(tsv);
-    setCopiedTab('file1');
-    toast.success('File 1 data copied! Paste into Google Sheets.');
-    setTimeout(() => setCopiedTab(null), 2000);
+    copyToClipboard(tsv, 'file1', 'File 1 data copied! Paste into Google Sheets.');
   };
 
   const copyFile2 = () => {
@@ -286,10 +305,7 @@ function ExcelPreview({ previewData }) {
       row.description
     ]) || [];
     const tsv = [headers, ...rows].map(row => row.join('\t')).join('\n');
-    navigator.clipboard.writeText(tsv);
-    setCopiedTab('file2');
-    toast.success('File 2 data copied! Paste into Google Sheets.');
-    setTimeout(() => setCopiedTab(null), 2000);
+    copyToClipboard(tsv, 'file2', 'File 2 data copied! Paste into Google Sheets.');
   };
 
   const copyAll = () => {
@@ -330,10 +346,7 @@ function ExcelPreview({ previewData }) {
     const f2Rows = previewData.file2_tools?.map(row => [row.index, row.name, row.description]) || [];
     allData += [f2Headers, ...f2Rows].map(row => row.join('\t')).join('\n');
     
-    navigator.clipboard.writeText(allData);
-    setCopiedTab('all');
-    toast.success('All data copied! Paste into Google Sheets.');
-    setTimeout(() => setCopiedTab(null), 2000);
+    copyToClipboard(allData, 'all', 'All data copied! Paste into Google Sheets.');
   };
 
   const CopyButton = ({ onClick, tabName }) => (
