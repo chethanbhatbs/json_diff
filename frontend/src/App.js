@@ -1347,6 +1347,34 @@ function App() {
     }
   }, [user]);
 
+  // Swap files function
+  const handleSwapFiles = useCallback(() => {
+    if (file1 && file2) {
+      const temp = file1;
+      setFile1(file2);
+      setFile2(temp);
+      toast.success('Files swapped');
+    }
+  }, [file1, file2]);
+
+  // Clear all function
+  const handleClearAll = useCallback(() => {
+    setFile1(null);
+    setFile2(null);
+    setFileId1(null);
+    setFileId2(null);
+    setSummary(null);
+    setPreviewData(null);
+    setDownloadUrl(null);
+    setCompareType('tools');
+    setCustomPath('');
+    setDetectedPaths([]);
+    setTools([]);
+    setSelectedTools(null);
+    setOutputFilename('');
+    toast.success('All data cleared');
+  }, []);
+
   const handleReset = () => {
     setFile1(null); setFile2(null);
     setDetectedPaths([]); setTools([]); setSelectedTools(null);
