@@ -1557,6 +1557,56 @@ function App() {
         filename={editDialog.filename}
         onSave={(data) => handleEditSave(data, editDialog.fileNumber)}
       />
+
+      {/* Share Dialog */}
+      <Dialog open={shareDialog.open} onOpenChange={(open) => !shareDialog.loading && setShareDialog({ ...shareDialog, open })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5" />
+              Share Comparison
+            </DialogTitle>
+          </DialogHeader>
+          {shareDialog.loading ? (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Generating shareable link...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-2">Shareable Link (expires in 30 days)</p>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={shareDialog.shareUrl} 
+                    readOnly 
+                    className="text-xs font-mono"
+                    onClick={(e) => e.target.select()}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareDialog.shareUrl);
+                      toast.success('Link copied to clipboard!');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Anyone with this link can view the comparison results. The link will expire in 30 days.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareDialog({ open: false, shareUrl: '', loading: false })}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <header className="border-b bg-background sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
