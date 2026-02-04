@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --font-heading: 'Space Grotesk', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    --font-heading: 'Manrope', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -25,34 +25,78 @@ code, pre {
 
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
+    font-weight: 600;
 }
 
 @layer base {
     :root {
+        /* Base colors - Light theme (Swiss & High-Contrast) */
         --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
+        --foreground: 240 5% 9%;
+        --card: 0 0% 98%;
+        --card-foreground: 240 5% 9%;
         --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
-        --primary: 240 5.9% 10%;
+        --popover-foreground: 240 5% 9%;
+        --primary: 240 5% 9%;
         --primary-foreground: 0 0% 98%;
-        --secondary: 240 4.8% 95.9%;
-        --secondary-foreground: 240 5.9% 10%;
-        --muted: 240 4.8% 95.9%;
-        --muted-foreground: 240 3.8% 46.1%;
-        --accent: 240 4.8% 95.9%;
-        --accent-foreground: 240 5.9% 10%;
-        --destructive: 0 84.2% 60.2%;
+        --secondary: 0 0% 98%;
+        --secondary-foreground: 240 5% 9%;
+        --muted: 0 0% 98%;
+        --muted-foreground: 240 4% 46%;
+        --accent: 0 0% 96%;
+        --accent-foreground: 240 5% 9%;
+        --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
-        --ring: 240 5.9% 10%;
+        --border: 240 6% 90%;
+        --input: 240 6% 90%;
+        --ring: 240 5% 9%;
         --radius: 0.5rem;
-        --success: 142 76% 36%;
-        --warning: 38 92% 50%;
-        --brand: 217 91% 60%;
+        
+        /* Diff colors */
+        --diff-added-text: 145 63% 32%;
+        --diff-added-bg: 142 76% 91%;
+        --diff-added-border: 142 69% 76%;
+        --diff-removed-text: 0 73% 41%;
+        --diff-removed-bg: 0 93% 94%;
+        --diff-removed-border: 0 93% 81%;
+        --diff-modified-text: 43 96% 36%;
+        --diff-modified-bg: 55 92% 88%;
+        --diff-modified-border: 48 96% 64%;
+    }
+    
+    .dark {
+        /* Dark theme colors */
+        --background: 240 10% 4%;
+        --foreground: 0 0% 98%;
+        --card: 240 6% 10%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 10% 4%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 0 0% 98%;
+        --primary-foreground: 240 10% 4%;
+        --secondary: 240 4% 16%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 4% 16%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 240 4% 16%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 63% 31%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 4% 16%;
+        --input: 240 4% 16%;
+        --ring: 0 0% 98%;
+        
+        /* Diff colors for dark mode */
+        --diff-added-text: 142 69% 76%;
+        --diff-added-bg: 145 63% 15%;
+        --diff-added-border: 145 63% 25%;
+        --diff-removed-text: 0 93% 81%;
+        --diff-removed-bg: 0 73% 20%;
+        --diff-removed-border: 0 73% 30%;
+        --diff-modified-text: 48 96% 76%;
+        --diff-modified-bg: 43 96% 18%;
+        --diff-modified-border: 43 96% 28%;
     }
 }
 
