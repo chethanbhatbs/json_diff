@@ -1498,9 +1498,35 @@ function App() {
           
           <div className="lg:col-span-2 space-y-6">
             <section className="print:hidden">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <FileJson className="h-5 w-5" />Upload JSON Files
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FileJson className="h-5 w-5" />Upload JSON Files
+                </h2>
+                {(file1 || file2) && (
+                  <div className="flex items-center gap-2">
+                    {file1 && file2 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleSwapFiles}
+                        className="gap-2 h-8"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Swap Files
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleClearAll}
+                      className="gap-2 h-8 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FileUploadZone 
                   label="JSON File 1" 
