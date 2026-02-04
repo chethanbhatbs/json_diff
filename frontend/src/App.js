@@ -449,16 +449,11 @@ function ExcelPreview({ previewData, previewRef }) {
   return (
     <div ref={previewRef} className="border rounded-lg bg-card overflow-hidden" data-testid="excel-preview">
       <div className="p-4 border-b bg-zinc-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">Comparison Preview</h3>
-          </div>
-          <Button variant="outline" size="sm" onClick={copyComparison} className="h-8 px-3 text-xs gap-2" data-testid="copy-all-btn">
-            {copiedTab === 'all' ? <><Check className="h-3 w-3 text-green-600" />Copied!</> : <><ClipboardCopy className="h-3 w-3" />Copy Table</>}
-          </Button>
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold">Comparison Preview</h3>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">Click &quot;Copy&quot; to paste into Google Sheets</p>
+        <p className="text-sm text-muted-foreground mt-1">Click &quot;Copy&quot; button in each tab to paste into Google Sheets</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
