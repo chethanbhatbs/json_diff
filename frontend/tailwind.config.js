@@ -13,9 +13,13 @@ module.exports = {
                         sm: 'calc(var(--radius) - 4px)'
                 },
                 fontFamily: {
-                        heading: ['Space Grotesk', 'sans-serif'],
-                        body: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace']
+                        heading: ['Manrope', 'sans-serif'],
+                        body: ['IBM Plex Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['IBM Plex Sans', 'sans-serif']
+                },
+                letterSpacing: {
+                        tighter: '-0.02em'
                 },
                 colors: {
                         background: 'hsl(var(--background))',
@@ -51,12 +55,22 @@ module.exports = {
                         border: 'hsl(var(--border))',
                         input: 'hsl(var(--input))',
                         ring: 'hsl(var(--ring))',
-                        chart: {
-                                '1': 'hsl(var(--chart-1))',
-                                '2': 'hsl(var(--chart-2))',
-                                '3': 'hsl(var(--chart-3))',
-                                '4': 'hsl(var(--chart-4))',
-                                '5': 'hsl(var(--chart-5))'
+                        diff: {
+                                added: {
+                                        text: 'hsl(var(--diff-added-text))',
+                                        bg: 'hsl(var(--diff-added-bg))',
+                                        border: 'hsl(var(--diff-added-border))'
+                                },
+                                removed: {
+                                        text: 'hsl(var(--diff-removed-text))',
+                                        bg: 'hsl(var(--diff-removed-bg))',
+                                        border: 'hsl(var(--diff-removed-border))'
+                                },
+                                modified: {
+                                        text: 'hsl(var(--diff-modified-text))',
+                                        bg: 'hsl(var(--diff-modified-bg))',
+                                        border: 'hsl(var(--diff-modified-border))'
+                                }
                         }
                 },
                 keyframes: {
@@ -75,11 +89,16 @@ module.exports = {
                                 to: {
                                         height: '0'
                                 }
+                        },
+                        'fade-in': {
+                                from: { opacity: '0', transform: 'translateY(4px)' },
+                                to: { opacity: '1', transform: 'translateY(0)' }
                         }
                 },
                 animation: {
                         'accordion-down': 'accordion-down 0.2s ease-out',
-                        'accordion-up': 'accordion-up 0.2s ease-out'
+                        'accordion-up': 'accordion-up 0.2s ease-out',
+                        'fade-in': 'fade-in 0.2s ease-out'
                 }
         }
   },
