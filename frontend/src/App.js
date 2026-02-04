@@ -757,7 +757,7 @@ function App() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [previewData, setPreviewData] = useState(null);
   const [toolSearch, setToolSearch] = useState('');
-  const [outputFilename, setOutputFilename] = useState('comparison_report');
+  const [outputFilename, setOutputFilename] = useState('');
   const [history, setHistory] = useState([]);
   const [user, setUser] = useState(null);
   const [editDialog, setEditDialog] = useState({ open: false, fileId: null, filename: '', fileNumber: null });
