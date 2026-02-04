@@ -1668,6 +1668,7 @@ function App() {
                     onExportPdf={handleExportPdf}
                     onPrint={handlePrint}
                     onLogin={handleGoogleSheetsLogin}
+                    onShare={handleShareComparison}
                     isDownloading={isDownloading}
                     user={user}
                   />
