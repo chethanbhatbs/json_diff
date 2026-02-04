@@ -238,17 +238,21 @@ function FileUploadZone({ label, fileNumber, onFileUploaded, uploadedFile, isLoa
             <span className="text-xs text-muted-foreground">{formatFileSize(uploadedFile.size)}</span>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3">
-            <Upload className="h-8 w-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Drop JSON file or click to browse</span>
-            <span className="text-[10px] text-muted-foreground">Max size: {MAX_FILE_SIZE_MB} MB</span>
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-4 rounded-full bg-muted/50 border border-border">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-foreground">Drop JSON file or click to browse</p>
+              <p className="text-xs text-muted-foreground">Maximum size: {MAX_FILE_SIZE_MB} MB</p>
+            </div>
           </div>
         )}
       </div>
 
       {(uploadedFile?.error || error) && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-xs text-red-600 font-mono">{uploadedFile?.error || error}</p>
+        <div className="mt-4 p-3 bg-diff-removed-bg border border-diff-removed-border rounded-md">
+          <p className="text-xs text-diff-removed-text font-mono">{uploadedFile?.error || error}</p>
         </div>
       )}
     </div>
