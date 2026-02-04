@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Settings, ChevronDown, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Settings, AlertCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { cn } from '../lib/utils';
 
 export const ComparisonConfig = ({ 
   detectedPaths = [], 
@@ -19,7 +18,9 @@ export const ComparisonConfig = ({
   const [compareType, setCompareType] = useState(config?.compareType || 'tools');
   const [selectedPath, setSelectedPath] = useState(config?.selectedPath || '');
   const [customPath, setCustomPath] = useState(config?.customPath || '');
+  const initializedRef = useRef(false);
 
+  // Notify parent of config changes
   useEffect(() => {
     onConfigChange({
       compareType,
@@ -28,13 +29,13 @@ export const ComparisonConfig = ({
     });
   }, [compareType, selectedPath, customPath, onConfigChange]);
 
-  // Auto-select first detected path - use useMemo to derive initial state
-  const initialPath = detectedPaths.length > 0 ? detectedPaths[0].path_string : '';
-  
-  // Set initial path when paths are first detected
-  if (detectedPaths.length > 0 && !selectedPath && initialPath) {
-    setSelectedPath(initialPath);
-  }
+  // Auto-select first detected path when paths are detected
+  useEffect(() => {
+    if (detectedPaths.length > 0 && !selectedPath && !initializedRef.current) {
+      initializedRef.current = true;
+      setSelectedPath(detectedPaths[0].path_string);
+    }
+  }, [detectedPaths, selectedPath]);
 
   return (
     <div className="config-panel" data-testid="comparison-config">
