@@ -435,7 +435,10 @@ function ExcelPreview({ previewData }) {
         </TabsContent>
 
         <TabsContent value="differences" className="m-0">
-          <ScrollArea className="h-[300px]">
+          <div className="flex justify-end p-2 border-b bg-zinc-50">
+            <CopyButton onClick={copyDifferences} tabName="differences" />
+          </div>
+          <ScrollArea className="h-[280px]">
             <UITable>
               <TableHeader>
                 <TableRow className="bg-blue-600 hover:bg-blue-600">
@@ -474,7 +477,10 @@ function ExcelPreview({ previewData }) {
         </TabsContent>
 
         <TabsContent value="file1" className="m-0">
-          <ScrollArea className="h-[300px]">
+          <div className="flex justify-end p-2 border-b bg-zinc-50">
+            <CopyButton onClick={copyFile1} tabName="file1" />
+          </div>
+          <ScrollArea className="h-[280px]">
             <UITable>
               <TableHeader>
                 <TableRow className="bg-blue-600 hover:bg-blue-600">
