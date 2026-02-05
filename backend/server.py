@@ -437,11 +437,14 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
         in_file2 = "✓" if name in tools2_dict else "✗"
         
         if name in tools1_dict and name in tools2_dict:
-            desc1 = tools1_dict[name].strip()
-            desc2 = tools2_dict[name].strip()
-            desc_same = "✓" if desc1 == desc2 else "✗"
+            desc1_raw = tools1_dict[name]
+            desc2_raw = tools2_dict[name]
+            # Use normalized comparison (same as preview_data)
+            desc1_norm = ' '.join(desc1_raw.split()) if desc1_raw else ""
+            desc2_norm = ' '.join(desc2_raw.split()) if desc2_raw else ""
+            desc_same = "✓" if desc1_norm == desc2_norm else "✗"
             
-            if desc1 == desc2:
+            if desc1_norm == desc2_norm:
                 notes = "Same in both"
                 same_count += 1
             else:
