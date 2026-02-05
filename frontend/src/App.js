@@ -576,7 +576,7 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
                   <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
                     <AlertTriangle className="h-8 w-8 mb-2 opacity-50" />
                     <p className="text-sm font-medium">No data found</p>
-                    <p className="text-xs">No items match the "{comparisonFilter}" filter</p>
+                    <p className="text-xs">No items match the &quot;{comparisonFilter}&quot; filter</p>
                   </div>
                 );
               }
