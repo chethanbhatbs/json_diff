@@ -529,7 +529,7 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
           <Eye className="h-5 w-5 text-muted-foreground" />
           <h3 className="text-lg font-semibold">Comparison Preview</h3>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">Click &quot;Copy&quot; button in each tab to paste into Google Sheets</p>
+        <p className="text-sm text-muted-foreground mt-1">Click &quot;Copy&quot; button in each tab to paste into Google Sheets (includes formatting)</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -563,38 +563,54 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
             <CopyButton onClick={copyComparison} tabName="comparison" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
-            <UITable>
-              <TableHeader>
-                <TableRow className="bg-blue-600 hover:bg-blue-600">
-                  <TableHead className="text-white font-bold">Tool Name</TableHead>
-                  <TableHead className="text-white font-bold text-center">In File1</TableHead>
-                  <TableHead className="text-white font-bold text-center">In File2</TableHead>
-                  <TableHead className="text-white font-bold text-center">Same?</TableHead>
-                  <TableHead className="text-white font-bold">Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewData.comparison?.filter(row => {
-                  if (comparisonFilter === 'all') return true;
-                  return row.status === comparisonFilter;
-                }).map((row, idx) => (
-                  <TableRow key={idx} className={getStatusColor(row.status)}>
-                    <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className={cn("text-center", row.in_file1 ? "bg-green-200" : "bg-red-200")}>{row.in_file1 ? '✓' : '✗'}</TableCell>
-                    <TableCell className={cn("text-center", row.in_file2 ? "bg-green-200" : "bg-red-200")}>{row.in_file2 ? '✓' : '✗'}</TableCell>
-                    <TableCell className={cn("text-center", row.desc_same === true ? "bg-green-200" : row.desc_same === false ? "bg-yellow-200" : "")}>
-                      {row.desc_same === true ? '✓' : row.desc_same === false ? '✗' : 'N/A'}
-                    </TableCell>
-                    <TableCell>{row.notes}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </UITable>
+            {(() => {
+              const filteredData = previewData.comparison?.filter(row => {
+                if (comparisonFilter === 'all') return true;
+                return row.status === comparisonFilter;
+              }) || [];
+              
+              if (filteredData.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                    <AlertTriangle className="h-8 w-8 mb-2 opacity-50" />
+                    <p className="text-sm font-medium">No data found</p>
+                    <p className="text-xs">No items match the "{comparisonFilter}" filter</p>
+                  </div>
+                );
+              }
+              
+              return (
+                <UITable>
+                  <TableHeader>
+                    <TableRow className="bg-blue-600 hover:bg-blue-600">
+                      <TableHead className="text-white font-bold">Tool Name</TableHead>
+                      <TableHead className="text-white font-bold text-center">In File1</TableHead>
+                      <TableHead className="text-white font-bold text-center">In File2</TableHead>
+                      <TableHead className="text-white font-bold text-center">Same?</TableHead>
+                      <TableHead className="text-white font-bold">Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredData.map((row, idx) => (
+                      <TableRow key={idx} className={getStatusColor(row.status)}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell className={cn("text-center", row.in_file1 ? "bg-green-200 dark:bg-green-900/50" : "bg-red-200 dark:bg-red-900/50")}>{row.in_file1 ? '✓' : '✗'}</TableCell>
+                        <TableCell className={cn("text-center", row.in_file2 ? "bg-green-200 dark:bg-green-900/50" : "bg-red-200 dark:bg-red-900/50")}>{row.in_file2 ? '✓' : '✗'}</TableCell>
+                        <TableCell className={cn("text-center", row.desc_same === true ? "bg-green-200 dark:bg-green-900/50" : row.desc_same === false ? "bg-yellow-200 dark:bg-yellow-900/50" : "")}>
+                          {row.desc_same === true ? '✓' : row.desc_same === false ? '✗' : 'N/A'}
+                        </TableCell>
+                        <TableCell>{row.notes}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </UITable>
+              );
+            })()}
           </ScrollArea>
         </TabsContent>
 
         <TabsContent value="differences" className="m-0">
-          <div className="flex justify-end p-2 border-b bg-zinc-50">
+          <div className="flex justify-end p-2 border-b bg-muted/30">
             <CopyButton onClick={copyDifferences} tabName="differences" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
