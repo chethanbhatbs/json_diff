@@ -397,29 +397,56 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'same': return 'bg-green-100 text-green-800';
-      case 'modified': return 'bg-yellow-100 text-yellow-800';
-      case 'added': return 'bg-blue-100 text-blue-800';
-      case 'removed': return 'bg-red-100 text-red-800';
+      case 'same': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'modified': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'added': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'removed': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       default: return '';
     }
   };
 
   const getChangeTypeColor = (type) => {
-    if (type === 'Added in File2') return 'bg-green-100 text-green-700';
-    if (type === 'Removed from File2') return 'bg-red-100 text-red-700';
-    return 'bg-yellow-100 text-yellow-700';
+    if (type === 'Added in File2') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+    if (type === 'Removed from File2') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
   };
 
-  const copyTableToClipboard = async (headers, rows, tabName, successMsg) => {
-    let html = '<table>';
-    html += '<tr>' + headers.map(h => `<td><b>${h}</b></td>`).join('') + '</tr>';
-    rows.forEach(row => {
-      html += '<tr>' + row.map(cell => `<td>${String(cell || '').replace(/\n/g, ' ')}</td>`).join('') + '</tr>';
+  // Get background color for HTML copy based on status
+  const getStatusBgColor = (status) => {
+    switch (status) {
+      case 'same': return '#C6EFCE';
+      case 'modified': return '#FFEB9C';
+      case 'added': return '#D4F4DD';
+      case 'removed': return '#FFC7CE';
+      default: return 'transparent';
+    }
+  };
+
+  const copyTableToClipboard = async (headers, rows, tabName, successMsg, rowStyles = null) => {
+    // Build HTML with proper styling for paste into Google Sheets
+    let html = '<table style="border-collapse: collapse; font-family: Arial, sans-serif;">';
+    html += '<tr style="background-color: #4472C4; color: white; font-weight: bold;">' + 
+            headers.map(h => `<td style="border: 1px solid #333; padding: 8px;">${h}</td>`).join('') + '</tr>';
+    
+    rows.forEach((row, idx) => {
+      const bgColor = rowStyles && rowStyles[idx] ? rowStyles[idx] : 'transparent';
+      html += `<tr style="background-color: ${bgColor};">` + 
+              row.map(cell => {
+                // Check if this cell has special formatting (word diff)
+                if (typeof cell === 'object' && cell.html) {
+                  return `<td style="border: 1px solid #ddd; padding: 6px;">${cell.html}</td>`;
+                }
+                return `<td style="border: 1px solid #ddd; padding: 6px;">${String(cell || '').replace(/\n/g, '<br>')}</td>`;
+              }).join('') + '</tr>';
     });
     html += '</table>';
     
-    const plainText = [headers, ...rows].map(row => row.map(cell => String(cell || '').replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t')).join('\n');
+    const plainText = [headers, ...rows].map(row => 
+      row.map(cell => {
+        if (typeof cell === 'object' && cell.text) return cell.text;
+        return String(cell || '').replace(/\t/g, ' ').replace(/\n/g, ' ');
+      }).join('\t')
+    ).join('\n');
     
     try {
       await navigator.clipboard.write([
@@ -458,15 +485,29 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
       row.name, row.in_file1 ? 'Yes' : 'No', row.in_file2 ? 'Yes' : 'No',
       row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A', row.notes
     ]) || [];
-    copyTableToClipboard(headers, rows, 'comparison', 'Copied! Paste into Google Sheets.');
+    const rowStyles = previewData.comparison?.map(row => getStatusBgColor(row.status)) || [];
+    copyTableToClipboard(headers, rows, 'comparison', 'Copied with formatting! Paste into Google Sheets.', rowStyles);
   };
 
   const copyDifferences = () => {
     const headers = ['Tool Name', 'File1 Description', 'File2 Description', 'Change Type'];
-    const rows = previewData.differences?.map(row => [
-      row.name, row.file1_desc || '', row.file2_desc || '', row.change_type
-    ]) || [];
-    copyTableToClipboard(headers, rows, 'differences', 'Copied! Paste into Google Sheets.');
+    const rows = previewData.differences?.map(row => {
+      // Create HTML with word diff highlighting
+      const file1Html = row.file1_diff?.map(d => 
+        d.type === 'removed' ? `<span style="background-color: #FFC7CE; text-decoration: line-through;">${d.text}</span>` : d.text
+      ).join(' ') || row.file1_desc || '-';
+      const file2Html = row.file2_diff?.map(d => 
+        d.type === 'added' ? `<span style="background-color: #C6EFCE;">${d.text}</span>` : d.text
+      ).join(' ') || row.file2_desc || '-';
+      
+      return [
+        row.name, 
+        { html: file1Html, text: row.file1_desc || '' },
+        { html: file2Html, text: row.file2_desc || '' },
+        row.change_type
+      ];
+    }) || [];
+    copyTableToClipboard(headers, rows, 'differences', 'Copied with word-level highlighting! Paste into Google Sheets.');
   };
 
   const copyFile1 = () => {
