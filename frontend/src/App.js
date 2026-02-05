@@ -1695,15 +1695,15 @@ function App() {
   }, [previewData, summary, file1, file2, outputFilename]);
 
   const handleGoogleSheetsLogin = useCallback(() => {
-    if (user) {
-      // User is already logged in, show message that Google Sheets export needs separate setup
-      toast.info('Google Sheets export feature is coming soon! For now, please use the "Copy Table" button to paste data into Google Sheets manually.');
-    } else {
-      // Not logged in, trigger main app login
-      const redirectUrl = window.location.origin + window.location.pathname;
-      window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-    }
-  }, [user]);
+    // Show informative message about Google Sheets export
+    toast.info(
+      <div>
+        <strong>Google Sheets Export</strong>
+        <p className="text-xs mt-1">Use the Copy button in each tab to copy data with formatting, then paste directly into Google Sheets.</p>
+      </div>,
+      { duration: 5000 }
+    );
+  }, []);
 
   // Swap files function
   const handleSwapFiles = useCallback(() => {
