@@ -1966,7 +1966,7 @@ function App() {
                 <li><strong>Upload Files:</strong> Drag and drop or click to upload two JSON files (max 30 MB each)</li>
                 <li><strong>Configure:</strong> Select comparison type (Tools, System, Entire Object, or Custom Path)</li>
                 <li><strong>Enter Filename:</strong> Provide a name for your output report</li>
-                <li><strong>Compare:</strong> Click "Compare & Generate" to see results</li>
+                <li><strong>Compare:</strong> Click &quot;Compare &amp; Generate&quot; to see results</li>
                 <li><strong>Export:</strong> Download as Excel, PDF, HTML, or print directly</li>
               </ol>
             </div>
