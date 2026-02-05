@@ -105,7 +105,7 @@
 user_problem_statement: "Test the JSON Compare application's new UI layout after the layout fix. The app is at https://ui-alignment-12.preview.emergentagent.com"
 
 frontend:
-  - task: "File Upload and Comparison"
+  - task: "Initial Layout in Light Mode"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -115,12 +115,27 @@ frontend:
     status_history:
       - working: "NA"
         agent: "testing"
-        comment: "Need to test file upload and comparison functionality"
+        comment: "Need to test the initial layout in light mode to verify upload boxes alignment and placeholder message"
       - working: true
         agent: "testing"
-        comment: "File upload for both JSON files works correctly. Comparison runs successfully and displays results in a table."
+        comment: "The two upload boxes (JSON FILE 1 and JSON FILE 2) are horizontally aligned and take equal width. The placeholder message 'Upload both JSON files to see configuration options' is displayed below the upload boxes in a full-width card."
+  
+  - task: "Theme Toggle"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Need to test dark mode toggle functionality"
+      - working: true
+        agent: "testing"
+        comment: "Theme toggle button works correctly, switching the UI between light and dark modes while maintaining proper layout and alignment."
 
-  - task: "Excel Download Button"
+  - task: "Layout After File Upload"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -130,12 +145,12 @@ frontend:
     status_history:
       - working: "NA"
         agent: "testing"
-        comment: "Need to test the Excel download button ([data-testid=\"download-excel-btn\"])"
+        comment: "Need to test the layout after uploading JSON files"
       - working: true
         agent: "testing"
-        comment: "Excel Download Button is clickable and initiates a download. Console logs confirm download starts for comparison_report.xlsx"
+        comment: "After uploading both files, the configuration section appears with a 4-column layout containing: Configuration, Tools, Output (filename), and Compare button. All sections are properly aligned in a single row with the Compare & Generate button at the far right."
 
-  - task: "HTML Export Button"
+  - task: "Layout After Comparison"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -145,12 +160,12 @@ frontend:
     status_history:
       - working: "NA"
         agent: "testing"
-        comment: "Need to test the HTML export button ([data-testid=\"export-html-btn\"])"
+        comment: "Need to test the layout after running a comparison"
       - working: true
         agent: "testing"
-        comment: "HTML Export Button is clickable and initiates a download. Console logs confirm download starts for comparison_report.html"
+        comment: "After comparison, the results section appears with summary stats displayed in a 6-card grid. The Comparison Preview table is full-width, and the Export Options panel is also full-width below the results. The History section appears at the bottom as expected."
 
-  - task: "PDF Export Button"
+  - task: "Responsive Layout"
     implemented: true
     working: true
     file: "/app/frontend/src/App.js"
@@ -160,40 +175,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "testing"
-        comment: "Need to test the PDF export button ([data-testid=\"export-pdf-btn\"])"
+        comment: "Need to test responsive layout at tablet and mobile widths"
       - working: true
         agent: "testing"
-        comment: "PDF Export Button is clickable. Verification shows download starts and toast notification appears confirming PDF generation."
-
-  - task: "Print Button"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/App.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Need to test the Print button ([data-testid=\"print-btn\"])"
-      - working: true
-        agent: "testing"
-        comment: "Print Button is clickable and opens a new window for printing. Console logs confirm 'New window opened for print preview'"
-
-  - task: "Google Sheets Login Button"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/App.js"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Need to test the Google Sheets Login button ([data-testid=\"export-gsheets-btn\"])"
-      - working: true
-        agent: "testing"
-        comment: "Google Sheets Login Button is present and clickable. The button appears to be properly configured to trigger authentication to auth.emergentagent.com."
+        comment: "At tablet width (768px), the upload boxes remain side-by-side as expected. At mobile width (375px), the boxes stack vertically, confirming proper responsive behavior."
 
 metadata:
   created_by: "testing_agent"
