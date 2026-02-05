@@ -1386,42 +1386,207 @@ function App() {
   }, [previewData, summary, outputFilename, addLog]);
 
   const handleExportPdf = useCallback(async () => {
-    if (!previewRef.current || !previewData || !summary) {
+    if (!previewData || !summary) {
       toast.error('No data to export');
       return;
     }
     
-    const loadingToast = toast.loading('Generating PDF...');
+    const loadingToast = toast.loading('Generating comprehensive PDF...');
     
     try {
-      const canvas = await html2canvas(previewRef.current, { 
-        scale: 2,
-        useCORS: true,
-        logging: false
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('l', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPos = margin;
+
+      // Helper function to add new page if needed
+      const checkNewPage = (neededHeight = 20) => {
+        if (yPos + neededHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPos = margin;
+          return true;
+        }
+        return false;
+      };
+
+      // Title
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('JSON Comparison Report', margin, yPos);
+      yPos += 8;
       
-      // Add title
-      pdf.setFontSize(16);
-      pdf.text('JSON Comparison Report', 10, 15);
       pdf.setFontSize(10);
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, 10, 22);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, margin, yPos);
+      pdf.text(`Output: ${outputFilename || 'comparison_report'}`, margin + 100, yPos);
+      yPos += 15;
+
+      // Summary Stats
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Summary Statistics', margin, yPos);
+      yPos += 8;
       
-      // Add image
-      if (pdfHeight > pdf.internal.pageSize.getHeight() - 30) {
-        pdf.addImage(imgData, 'PNG', 5, 28, pdfWidth - 10, pdf.internal.pageSize.getHeight() - 35);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      const stats = [
+        `File 1 Tools: ${summary.file1_tools}`,
+        `File 2 Tools: ${summary.file2_tools}`,
+        `Same: ${summary.same_count}`,
+        `Modified: ${summary.modified_count}`,
+        `Added: ${summary.added_count}`,
+        `Removed: ${summary.removed_count}`
+      ];
+      pdf.text(stats.join('   |   '), margin, yPos);
+      yPos += 15;
+
+      // Comparison Table
+      checkNewPage(30);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Comparison Summary', margin, yPos);
+      yPos += 8;
+
+      // Table headers
+      const compHeaders = ['Tool Name', 'In File1', 'In File2', 'Same?', 'Notes'];
+      const compColWidths = [60, 25, 25, 25, pageWidth - margin * 2 - 135];
+      
+      pdf.setFillColor(68, 114, 196);
+      pdf.rect(margin, yPos - 4, pageWidth - margin * 2, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      let xPos = margin;
+      compHeaders.forEach((h, i) => {
+        pdf.text(h, xPos + 2, yPos);
+        xPos += compColWidths[i];
+      });
+      yPos += 6;
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'normal');
+
+      // Table rows
+      previewData.comparison?.forEach(row => {
+        checkNewPage(8);
+        xPos = margin;
+        pdf.setFontSize(8);
+        pdf.text(String(row.name || '').substring(0, 30), xPos + 2, yPos);
+        xPos += compColWidths[0];
+        pdf.text(row.in_file1 ? 'Yes' : 'No', xPos + 2, yPos);
+        xPos += compColWidths[1];
+        pdf.text(row.in_file2 ? 'Yes' : 'No', xPos + 2, yPos);
+        xPos += compColWidths[2];
+        pdf.text(row.desc_same === true ? 'Yes' : row.desc_same === false ? 'No' : 'N/A', xPos + 2, yPos);
+        xPos += compColWidths[3];
+        pdf.text(String(row.notes || '').substring(0, 50), xPos + 2, yPos);
+        yPos += 5;
+      });
+      yPos += 10;
+
+      // Differences Section
+      checkNewPage(30);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Differences', margin, yPos);
+      yPos += 8;
+
+      if (previewData.differences?.length === 0) {
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'italic');
+        pdf.text('No differences found - all items are identical', margin, yPos);
+        yPos += 10;
       } else {
-        pdf.addImage(imgData, 'PNG', 5, 28, pdfWidth - 10, pdfHeight);
+        previewData.differences?.forEach(row => {
+          checkNewPage(20);
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${row.name} (${row.change_type})`, margin, yPos);
+          yPos += 5;
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8);
+          
+          const desc1 = row.file1_desc || '-';
+          const desc2 = row.file2_desc || '-';
+          const splitDesc1 = pdf.splitTextToSize(`File1: ${desc1}`, pageWidth - margin * 2);
+          const splitDesc2 = pdf.splitTextToSize(`File2: ${desc2}`, pageWidth - margin * 2);
+          
+          splitDesc1.forEach(line => {
+            checkNewPage(5);
+            pdf.text(line, margin, yPos);
+            yPos += 4;
+          });
+          splitDesc2.forEach(line => {
+            checkNewPage(5);
+            pdf.text(line, margin, yPos);
+            yPos += 4;
+          });
+          yPos += 3;
+        });
       }
-      
+
+      // File 1 Tools
+      pdf.addPage();
+      yPos = margin;
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`File 1 Tools (${previewData.file1_tools?.length || 0})`, margin, yPos);
+      yPos += 8;
+
+      previewData.file1_tools?.forEach(row => {
+        checkNewPage(15);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`${row.index}. ${row.name}`, margin, yPos);
+        yPos += 5;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        const splitDesc = pdf.splitTextToSize(row.description || '-', pageWidth - margin * 2);
+        splitDesc.slice(0, 5).forEach(line => { // Limit to 5 lines per tool
+          checkNewPage(5);
+          pdf.text(line, margin, yPos);
+          yPos += 4;
+        });
+        if (splitDesc.length > 5) {
+          pdf.text('...', margin, yPos);
+          yPos += 4;
+        }
+        yPos += 2;
+      });
+
+      // File 2 Tools
+      pdf.addPage();
+      yPos = margin;
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`File 2 Tools (${previewData.file2_tools?.length || 0})`, margin, yPos);
+      yPos += 8;
+
+      previewData.file2_tools?.forEach(row => {
+        checkNewPage(15);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`${row.index}. ${row.name}`, margin, yPos);
+        yPos += 5;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        const splitDesc = pdf.splitTextToSize(row.description || '-', pageWidth - margin * 2);
+        splitDesc.slice(0, 5).forEach(line => {
+          checkNewPage(5);
+          pdf.text(line, margin, yPos);
+          yPos += 4;
+        });
+        if (splitDesc.length > 5) {
+          pdf.text('...', margin, yPos);
+          yPos += 4;
+        }
+        yPos += 2;
+      });
+
       const filename = `${outputFilename || 'comparison_report'}.pdf`;
       pdf.save(filename);
       
-      toast.success(`Downloaded ${filename}`, { id: loadingToast });
+      toast.success(`Downloaded ${filename} (${pdf.internal.getNumberOfPages()} pages)`, { id: loadingToast });
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('PDF generation failed - try HTML export instead', { id: loadingToast });
