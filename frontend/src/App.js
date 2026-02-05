@@ -1654,19 +1654,82 @@ function App() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog open={helpDialog} onOpenChange={setHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              How to Use JSON Compare Tool
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h3 className="font-semibold text-base mb-2">About This Tool</h3>
+              <p className="text-muted-foreground">
+                JSON Compare is a powerful tool for comparing two JSON files side by side. It identifies differences, 
+                additions, and removals between files, making it perfect for comparing API responses, configuration files, 
+                or any JSON data.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-base mb-2">How to Use</h3>
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                <li><strong>Upload Files:</strong> Drag and drop or click to upload two JSON files (max 30 MB each)</li>
+                <li><strong>Configure:</strong> Select comparison type (Tools, System, Entire Object, or Custom Path)</li>
+                <li><strong>Enter Filename:</strong> Provide a name for your output report</li>
+                <li><strong>Compare:</strong> Click "Compare & Generate" to see results</li>
+                <li><strong>Export:</strong> Download as Excel, PDF, HTML, or print directly</li>
+              </ol>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-base mb-2">Features</h3>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Word-level diff highlighting for detailed comparison</li>
+                <li>Filter results by Added, Removed, Modified, or Same</li>
+                <li>Copy tables directly to Google Sheets with formatting</li>
+                <li>Share comparison results via unique links</li>
+                <li>Comparison history for quick access to previous results</li>
+                <li>Dark/Light theme support</li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-base mb-2">Keyboard Shortcuts</h3>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><kbd className="px-2 py-1 bg-muted rounded text-xs">Ctrl/Cmd + S</kbd> - Run comparison (when ready)</li>
+                <li><kbd className="px-2 py-1 bg-muted rounded text-xs">Ctrl/Cmd + K</kbd> - Focus tool search</li>
+                <li><kbd className="px-2 py-1 bg-muted rounded text-xs">Esc</kbd> - Close dialogs</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setHelpDialog(false)}>Got it!</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <header className="border-b bg-background sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-zinc-100 rounded-md">
-              <GitCompare className="h-5 w-5 text-zinc-700" />
+            <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+              <GitCompare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight" data-testid="app-title">JSON Compare</h1>
-              <p className="text-xs text-muted-foreground">Max file size: {MAX_FILE_SIZE_MB} MB</p>
-            </div>
+            <h1 className="text-xl font-bold tracking-tight" data-testid="app-title">JSON Compare</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setHelpDialog(true)} 
+              className="gap-2"
+              aria-label="Help"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -1688,8 +1751,15 @@ function App() {
                 <LogIn className="h-4 w-4" />Login
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={handleReset} className="gap-2" data-testid="reset-btn">
-              <RotateCcw className="h-4 w-4" />Reset
+            <Button 
+              variant={resetConfirm ? "destructive" : "ghost"} 
+              size="sm" 
+              onClick={handleReset} 
+              className="gap-2" 
+              data-testid="reset-btn"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {resetConfirm ? 'Confirm Reset?' : 'Reset'}
             </Button>
           </div>
         </div>
