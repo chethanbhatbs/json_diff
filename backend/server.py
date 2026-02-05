@@ -623,16 +623,9 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
             desc2_norm = ' '.join(desc2_raw.split()) if desc2_raw else ""
             desc_same = desc1_norm == desc2_norm
             
-            # Check for whitespace-only differences (raw differs but normalized same)
-            whitespace_only = (desc_same and desc1_raw.strip() != desc2_raw.strip())
-            
             if desc_same:
-                if whitespace_only:
-                    notes = "Whitespace differs (formatting only)"
-                    status = "same"  # Treat as same since content is identical
-                else:
-                    notes = "Same in both"
-                    status = "same"
+                notes = "Same in both"
+                status = "same"
             else:
                 notes = "Description differs"
                 status = "modified"
