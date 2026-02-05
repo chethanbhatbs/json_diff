@@ -372,8 +372,18 @@ function ProgressTerminal({ logs, isProcessing }) {
 // Copy Button Component (extracted for reusability)
 function CopyButton({ onClick, tabName, copiedTab }) {
   return (
-    <Button variant="outline" size="sm" onClick={onClick} className="h-7 px-2 text-xs gap-1" data-testid={`copy-${tabName}-btn`}>
-      {copiedTab === tabName ? <><Check className="h-3 w-3 text-green-600" />Copied!</> : <><Copy className="h-3 w-3" />Copy</>}
+    <Button 
+      variant="outline" 
+      size="sm" 
+      onClick={onClick} 
+      className="h-7 px-2 text-xs gap-1 bg-background border-border text-foreground hover:bg-accent" 
+      data-testid={`copy-${tabName}-btn`}
+    >
+      {copiedTab === tabName ? (
+        <><Check className="h-3 w-3 text-green-600 dark:text-green-400" />Copied!</>
+      ) : (
+        <><Copy className="h-3 w-3" />Copy</>
+      )}
     </Button>
   );
 }
