@@ -1022,7 +1022,9 @@ function App() {
         const path = compareType === 'custom' ? customPath : selectedPath;
         const res = await axios.get(`${API}/tools/${file1.file_id}`, { params: { path: path || undefined } });
         if (res.data.tools) setTools(res.data.tools);
-      } catch (error) {}
+      } catch (error) {
+        // Silently handle tool fetch errors
+      }
     };
     fetchTools();
   }, [file1?.file_id, selectedPath, customPath, compareType]);
