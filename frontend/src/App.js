@@ -1493,12 +1493,19 @@ function App() {
   }, [summary, previewData, file1, file2, compareType, outputFilename, downloadUrl]);
 
   const handleReset = () => {
-    setFile1(null); setFile2(null);
-    setDetectedPaths([]); setTools([]); setSelectedTools(null);
-    setCompareType('tools'); setSelectedPath(''); setCustomPath('');
-    setLogs([]); setSummary(null); setDownloadUrl(null); setPreviewData(null);
-    setOutputFilename('comparison_report');
-    toast.info('Reset complete');
+    if (resetConfirm) {
+      setFile1(null); setFile2(null);
+      setDetectedPaths([]); setTools([]); setSelectedTools(null);
+      setCompareType('tools'); setSelectedPath(''); setCustomPath('');
+      setLogs([]); setSummary(null); setDownloadUrl(null); setPreviewData(null);
+      setOutputFilename('');
+      setResetConfirm(false);
+      toast.info('Reset complete - all uploaded data has been cleared');
+    } else {
+      setResetConfirm(true);
+      toast.info('Click Reset again to confirm. This will clear all uploaded files and comparison results.', { duration: 4000 });
+      setTimeout(() => setResetConfirm(false), 4000); // Reset after 4 seconds
+    }
   };
 
   const handleClearHistory = async () => {
