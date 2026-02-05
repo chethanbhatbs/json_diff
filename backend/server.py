@@ -288,14 +288,18 @@ def get_word_diff(text1: str, text2: str) -> Tuple[List[Dict], List[Dict]]:
     Returns lists of {text, type} where type is 'same', 'added', or 'removed'.
     Compares word-by-word including spaces, special characters, and numbers.
     """
-    # Check if texts are identical
-    if text1 == text2:
-        return ([{"text": text1, "type": "same"}] if text1 else [], 
-                [{"text": text2, "type": "same"}] if text2 else [])
+    # Normalize texts for comparison (remove extra whitespace)
+    norm_text1 = ' '.join(text1.split()) if text1 else ""
+    norm_text2 = ' '.join(text2.split()) if text2 else ""
     
-    # Split into words (preserves special characters and numbers in words)
-    words1 = text1.split() if text1 else []
-    words2 = text2.split() if text2 else []
+    # Check if normalized texts are identical
+    if norm_text1 == norm_text2:
+        return ([{"text": norm_text1, "type": "same"}] if norm_text1 else [], 
+                [{"text": norm_text2, "type": "same"}] if norm_text2 else [])
+    
+    # Split into words
+    words1 = norm_text1.split() if norm_text1 else []
+    words2 = norm_text2.split() if norm_text2 else []
     
     # Use SequenceMatcher for word-by-word comparison
     matcher = difflib.SequenceMatcher(None, words1, words2)
