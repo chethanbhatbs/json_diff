@@ -1649,206 +1649,224 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          <div className="lg:col-span-2 space-y-6">
-            <section className="print:hidden">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <FileJson className="h-5 w-5" />Upload JSON Files
-                </h2>
-                {(file1 || file2) && (
-                  <div className="flex items-center gap-2">
-                    {file1 && file2 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleSwapFiles}
-                        className="gap-2 h-8"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        Swap Files
-                      </Button>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={handleClearAll}
-                      className="gap-2 h-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Clear All
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FileUploadZone 
-                  label="JSON File 1" 
-                  fileNumber={1} 
-                  onFileUploaded={(f) => handleFileUpload(f, 1)} 
-                  uploadedFile={file1} 
-                  isLoading={file1Loading}
-                  onEdit={() => setEditDialog({ open: true, fileId: file1?.file_id, filename: file1?.filename, fileNumber: 1 })}
-                />
-                <FileUploadZone 
-                  label="JSON File 2" 
-                  fileNumber={2} 
-                  onFileUploaded={(f) => handleFileUpload(f, 2)} 
-                  uploadedFile={file2} 
-                  isLoading={file2Loading}
-                  onEdit={() => setEditDialog({ open: true, fileId: file2?.file_id, filename: file2?.filename, fileNumber: 2 })}
-                />
-              </div>
-            </section>
-
-            {summary && (
-              <section className="animate-fade-in space-y-4">
-                <SummaryStats summary={summary} />
-                <ExcelPreview 
-                  previewData={previewData} 
-                  previewRef={previewRef}
-                  comparisonFilter={comparisonFilter}
-                  setComparisonFilter={setComparisonFilter}
-                />
-                <div className="print:hidden">
-                  <ExportPanel 
-                    onDownload={handleDownload}
-                    onExportHtml={handleExportHtml}
-                    onExportPdf={handleExportPdf}
-                    onPrint={handlePrint}
-                    onLogin={handleGoogleSheetsLogin}
-                    onShare={handleShareComparison}
-                    isDownloading={isDownloading}
-                    user={user}
-                  />
-                </div>
-              </section>
-            )}
-
-            {history.length > 0 && (
-              <section className="print:hidden">
-                <HistoryPanel 
-                  history={history} 
-                  onLoadHistory={handleLoadHistory}
-                  onClearHistory={handleClearHistory}
-                  onDeleteHistory={handleDeleteHistory}
-                />
-              </section>
-            )}
-          </div>
-
-          <div className="space-y-6 print:hidden">
-            {!file1?.valid || !file2?.valid ? (
-              <div className="border rounded-lg bg-muted/30 p-6 text-center">
-                <Settings2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                <p className="text-sm text-muted-foreground">Upload both JSON files to see configuration options</p>
-              </div>
-            ) : (
-              <>
-            <section>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Settings2 className="h-5 w-5" />Configuration
+        <div className="space-y-6">
+          {/* Upload Section - Full Width */}
+          <section className="print:hidden">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <FileJson className="h-5 w-5" />Upload JSON Files
               </h2>
-              <div className="config-panel" data-testid="comparison-config">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium">What to Compare</Label>
-                    <Select value={compareType} onValueChange={setCompareType}>
-                      <SelectTrigger className="h-9" data-testid="compare-type-select"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="tools">Tools</SelectItem>
-                        <SelectItem value="system">System</SelectItem>
-                        <SelectItem value="entire">Entire Object</SelectItem>
-                        <SelectItem value="custom">Custom Path</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {compareType === 'tools' && detectedPaths.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium">Tool Path</Label>
-                      <Select value={selectedPath} onValueChange={setSelectedPath}>
-                        <SelectTrigger className="h-9" data-testid="path-select"><SelectValue placeholder="Select path" /></SelectTrigger>
+              {(file1 || file2) && (
+                <div className="flex items-center gap-2">
+                  {file1 && file2 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleSwapFiles}
+                      className="gap-2 h-8"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Swap Files
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleClearAll}
+                    className="gap-2 h-8 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Clear All
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FileUploadZone 
+                label="JSON File 1" 
+                fileNumber={1} 
+                onFileUploaded={(f) => handleFileUpload(f, 1)} 
+                uploadedFile={file1} 
+                isLoading={file1Loading}
+                onEdit={() => setEditDialog({ open: true, fileId: file1?.file_id, filename: file1?.filename, fileNumber: 1 })}
+              />
+              <FileUploadZone 
+                label="JSON File 2" 
+                fileNumber={2} 
+                onFileUploaded={(f) => handleFileUpload(f, 2)} 
+                uploadedFile={file2} 
+                isLoading={file2Loading}
+                onEdit={() => setEditDialog({ open: true, fileId: file2?.file_id, filename: file2?.filename, fileNumber: 2 })}
+              />
+            </div>
+          </section>
+
+          {/* Configuration & Compare Section - Shows when both files are uploaded */}
+          {file1?.valid && file2?.valid && (
+            <section className="print:hidden border rounded-lg bg-card p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Configuration */}
+                <div className="lg:col-span-1">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <Settings2 className="h-4 w-4" />Configuration
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">What to Compare</Label>
+                      <Select value={compareType} onValueChange={setCompareType}>
+                        <SelectTrigger className="h-9" data-testid="compare-type-select"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {detectedPaths.map((p, i) => (
-                            <SelectItem key={i} value={p.path_string}>{p.path_string} ({p.tool_count} items)</SelectItem>
-                          ))}
+                          <SelectItem value="tools">Tools</SelectItem>
+                          <SelectItem value="system">System</SelectItem>
+                          <SelectItem value="entire">Entire Object</SelectItem>
+                          <SelectItem value="custom">Custom Path</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
-                  {compareType === 'custom' && (
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium">Custom Path</Label>
-                      <Input value={customPath} onChange={(e) => setCustomPath(e.target.value)} placeholder="e.g., data.items" className="h-9 font-mono text-sm" data-testid="custom-path-input" />
+                    {compareType === 'tools' && detectedPaths.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Tool Path</Label>
+                        <Select value={selectedPath} onValueChange={setSelectedPath}>
+                          <SelectTrigger className="h-9" data-testid="path-select"><SelectValue placeholder="Select path" /></SelectTrigger>
+                          <SelectContent>
+                            {detectedPaths.map((p, i) => (
+                              <SelectItem key={i} value={p.path_string}>{p.path_string} ({p.tool_count} items)</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {compareType === 'custom' && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Custom Path</Label>
+                        <Input value={customPath} onChange={(e) => setCustomPath(e.target.value)} placeholder="e.g., data.items" className="h-9 font-mono text-sm" data-testid="custom-path-input" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tool Selection - Only shows for 'tools' compare type */}
+                {compareType === 'tools' && tools.length > 0 && (
+                  <div className="lg:col-span-1">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                        <Filter className="h-4 w-4" />Tools
+                      </h3>
+                      <Badge variant="secondary" className="text-xs">{selectedTools === null ? tools.length : selectedTools.length}/{tools.length}</Badge>
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} placeholder="Search..." className="pl-8 h-8 text-sm" data-testid="tool-search-input" />
+                      </div>
+                      <div className="border rounded-md">
+                        <div className="tool-item border-b px-3 py-2" onClick={toggleAllTools} data-testid="select-all-tools">
+                          <Checkbox checked={isAllSelected} className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Select All</span>
+                        </div>
+                        <ScrollArea className="h-[100px]">
+                          <div className="p-1">
+                            {filteredTools.map((tool, idx) => (
+                              <div key={idx} className={cn("tool-item px-2 py-1.5 rounded", isToolSelected(tool.name) && "bg-accent/50")} onClick={() => toggleTool(tool.name)} data-testid={`tool-item-${idx}`}>
+                                <Checkbox checked={isToolSelected(tool.name)} className="h-3.5 w-3.5" />
+                                <span className="text-xs truncate">{tool.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Output Filename */}
+                <div className={cn("lg:col-span-1", compareType !== 'tools' || tools.length === 0 ? "lg:col-start-2" : "")}>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+                    <FileText className="h-4 w-4" />Output
+                  </h3>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">
+                      Filename <span className="text-red-500">*</span>
+                    </Label>
+                    <Input 
+                      value={outputFilename} 
+                      onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                      placeholder="Enter filename"
+                      className={cn("h-9", !outputFilename.trim() && "border-red-300 focus:border-red-400")}
+                      data-testid="output-filename-input"
+                      required
+                    />
+                    {!outputFilename.trim() && (
+                      <p className="text-[10px] text-red-500">Required to proceed</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Compare Button */}
+                <div className={cn("lg:col-span-1 flex items-end", compareType !== 'tools' || tools.length === 0 ? "lg:col-start-4" : "")}>
+                  <Button 
+                    onClick={handleCompare} 
+                    disabled={!canCompare} 
+                    className="w-full h-11 text-sm gap-2" 
+                    data-testid="compare-btn"
+                  >
+                    {isComparing ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" />Comparing...</>
+                    ) : (
+                      <><GitCompare className="h-4 w-4" />Compare &amp; Generate</>
+                    )}
+                  </Button>
                 </div>
               </div>
             </section>
+          )}
 
-            {compareType === 'tools' && tools.length > 0 && (
-              <section className="animate-fade-in">
-                <div className="config-panel" data-testid="tool-selector">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Tool Selection</span>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">{selectedTools === null ? tools.length : selectedTools.length} / {tools.length}</Badge>
-                  </div>
-                  <div className="relative mb-3">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} placeholder="Search tools..." className="pl-9 h-8 text-sm" data-testid="tool-search-input" />
-                  </div>
-                  <div className="tool-item mb-2 border-b pb-2" onClick={toggleAllTools} data-testid="select-all-tools">
-                    <Checkbox checked={isAllSelected} className="h-4 w-4" />
-                    <span className="text-sm font-medium">Select All</span>
-                  </div>
-                  <ScrollArea className="h-[120px]">
-                    <div className="space-y-1">
-                      {filteredTools.map((tool, idx) => (
-                        <div key={idx} className={cn("tool-item", isToolSelected(tool.name) && "selected")} onClick={() => toggleTool(tool.name)} data-testid={`tool-item-${idx}`}>
-                          <Checkbox checked={isToolSelected(tool.name)} className="h-4 w-4" />
-                          <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{tool.name}</div></div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </section>
-            )}
-            </>
-            )}
-
-            {file1?.valid && file2?.valid && (
-              <div className="border rounded-lg bg-card p-4">
-                <Label className="text-sm font-medium mb-2 block">
-                  Output Filename <span className="text-red-500">*</span>
-                </Label>
-                <Input 
-                  value={outputFilename} 
-                  onChange={(e) => setOutputFilename(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-                  placeholder="Enter filename (required)"
-                  className={cn("h-10", !outputFilename.trim() && "border-red-300")}
-                  data-testid="output-filename-input"
-                  required
-                />
-                {!outputFilename.trim() && (
-                  <p className="text-xs text-red-500 mt-1.5">⚠️ Filename is required to proceed</p>
-                )}
+          {/* Placeholder when files not uploaded */}
+          {(!file1?.valid || !file2?.valid) && (
+            <section className="print:hidden">
+              <div className="border rounded-lg bg-muted/30 p-8 text-center">
+                <Settings2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
+                <p className="text-sm text-muted-foreground">Upload both JSON files to see configuration options</p>
               </div>
-            )}
+            </section>
+          )}
 
-            <div className="space-y-2">
-              <Button onClick={handleCompare} disabled={!canCompare} className="w-full h-12 text-base gap-2" data-testid="compare-btn">
-                {isComparing ? <><Loader2 className="h-5 w-5 animate-spin" />Comparing...</> : <><GitCompare className="h-5 w-5" />Compare &amp; Generate</>}
-              </Button>
-              {!outputFilename.trim() && file1?.valid && file2?.valid && (
-                <p className="text-xs text-red-500 text-center">⚠️ Please enter an output filename above</p>
-              )}
-            </div>
-          </div>
+          {/* Results Section */}
+          {summary && (
+            <section className="animate-fade-in space-y-6">
+              <SummaryStats summary={summary} />
+              <ExcelPreview 
+                previewData={previewData} 
+                previewRef={previewRef}
+                comparisonFilter={comparisonFilter}
+                setComparisonFilter={setComparisonFilter}
+              />
+              <div className="print:hidden">
+                <ExportPanel 
+                  onDownload={handleDownload}
+                  onExportHtml={handleExportHtml}
+                  onExportPdf={handleExportPdf}
+                  onPrint={handlePrint}
+                  onLogin={handleGoogleSheetsLogin}
+                  onShare={handleShareComparison}
+                  isDownloading={isDownloading}
+                  user={user}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* History Section */}
+          {history.length > 0 && (
+            <section className="print:hidden">
+              <HistoryPanel 
+                history={history} 
+                onLoadHistory={handleLoadHistory}
+                onClearHistory={handleClearHistory}
+                onDeleteHistory={handleDeleteHistory}
+              />
+            </section>
+          )}
         </div>
       </main>
     </div>
