@@ -626,7 +626,13 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
               <TableBody>
                 {previewData.differences?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No differences found</TableCell>
+                    <TableCell colSpan={4} className="text-center py-8">
+                      <div className="flex flex-col items-center text-muted-foreground">
+                        <CheckCircle className="h-8 w-8 mb-2 opacity-50 text-green-500" />
+                        <p className="text-sm font-medium">No differences found</p>
+                        <p className="text-xs">All items are identical between the two files</p>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ) : (
                   previewData.differences?.map((row, idx) => (
@@ -650,54 +656,70 @@ function ExcelPreview({ previewData, previewRef, comparisonFilter = 'all', setCo
         </TabsContent>
 
         <TabsContent value="file1" className="m-0">
-          <div className="flex justify-end p-2 border-b bg-zinc-50">
+          <div className="flex justify-end p-2 border-b bg-muted/30">
             <CopyButton onClick={copyFile1} tabName="file1" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
-            <UITable>
-              <TableHeader>
-                <TableRow className="bg-blue-600 hover:bg-blue-600">
-                  <TableHead className="text-white font-bold w-[50px]">#</TableHead>
-                  <TableHead className="text-white font-bold w-[200px]">Tool Name</TableHead>
-                  <TableHead className="text-white font-bold">Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewData.file1_tools?.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{row.index}</TableCell>
-                    <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className="text-xs"><pre className="whitespace-pre-wrap font-mono max-w-[400px]">{row.description}</pre></TableCell>
+            {previewData.file1_tools?.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                <FileJson className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm font-medium">No tools found</p>
+                <p className="text-xs">File 1 contains no tools at the selected path</p>
+              </div>
+            ) : (
+              <UITable>
+                <TableHeader>
+                  <TableRow className="bg-blue-600 hover:bg-blue-600">
+                    <TableHead className="text-white font-bold w-[50px]">#</TableHead>
+                    <TableHead className="text-white font-bold w-[200px]">Tool Name</TableHead>
+                    <TableHead className="text-white font-bold">Description</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </UITable>
+                </TableHeader>
+                <TableBody>
+                  {previewData.file1_tools?.map((row, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{row.index}</TableCell>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="text-xs"><pre className="whitespace-pre-wrap font-mono max-w-[400px]">{row.description}</pre></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </UITable>
+            )}
           </ScrollArea>
         </TabsContent>
 
         <TabsContent value="file2" className="m-0">
-          <div className="flex justify-end p-2 border-b bg-zinc-50">
+          <div className="flex justify-end p-2 border-b bg-muted/30">
             <CopyButton onClick={copyFile2} tabName="file2" copiedTab={copiedTab} />
           </div>
           <ScrollArea className="h-[280px]">
-            <UITable>
-              <TableHeader>
-                <TableRow className="bg-blue-600 hover:bg-blue-600">
-                  <TableHead className="text-white font-bold w-[50px]">#</TableHead>
-                  <TableHead className="text-white font-bold w-[200px]">Tool Name</TableHead>
-                  <TableHead className="text-white font-bold">Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewData.file2_tools?.map((row, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{row.index}</TableCell>
-                    <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className="text-xs"><pre className="whitespace-pre-wrap font-mono max-w-[400px]">{row.description}</pre></TableCell>
+            {previewData.file2_tools?.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                <FileJson className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm font-medium">No tools found</p>
+                <p className="text-xs">File 2 contains no tools at the selected path</p>
+              </div>
+            ) : (
+              <UITable>
+                <TableHeader>
+                  <TableRow className="bg-blue-600 hover:bg-blue-600">
+                    <TableHead className="text-white font-bold w-[50px]">#</TableHead>
+                    <TableHead className="text-white font-bold w-[200px]">Tool Name</TableHead>
+                    <TableHead className="text-white font-bold">Description</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </UITable>
+                </TableHeader>
+                <TableBody>
+                  {previewData.file2_tools?.map((row, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{row.index}</TableCell>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="text-xs"><pre className="whitespace-pre-wrap font-mono max-w-[400px]">{row.description}</pre></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </UITable>
+            )}
           </ScrollArea>
         </TabsContent>
       </Tabs>
