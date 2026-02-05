@@ -2276,4 +2276,122 @@ function App() {
   );
 }
 
-export default App;
+// Shared View Component - for viewing shared comparisons
+function SharedView() {
+  const { shareId } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  const [comparisonFilter, setComparisonFilter] = useState('all');
+  const previewRef = useRef(null);
+
+  useEffect(() => {
+    const fetchSharedData = async () => {
+      try {
+        const response = await axios.get(`${API}/shared/${shareId}`);
+        setData(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching shared data:', err);
+        if (err.response?.status === 404) {
+          setError('Shared comparison not found. It may have been deleted or the link is invalid.');
+        } else if (err.response?.status === 410) {
+          setError('This shared comparison has expired.');
+        } else {
+          setError('Failed to load shared comparison. Please try again later.');
+        }
+        setLoading(false);
+      }
+    };
+
+    if (shareId) {
+      fetchSharedData();
+    }
+  }, [shareId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading shared comparison...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md p-8">
+          <XCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+          <h2 className="text-xl font-semibold mb-2">Unable to Load</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={() => navigate('/')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Go to JSON Compare
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Toaster position="bottom-right" />
+      
+      <header className="border-b bg-background sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-md">
+              <GitCompare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Shared Comparison</h1>
+              <p className="text-xs text-muted-foreground">
+                {data?.file1_name} vs {data?.file2_name}
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Create New Comparison
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6">
+          {data?.summary && <SummaryStats summary={data.summary} />}
+          
+          {data?.preview_data && (
+            <ExcelPreview 
+              previewData={data.preview_data} 
+              previewRef={previewRef}
+              comparisonFilter={comparisonFilter}
+              setComparisonFilter={setComparisonFilter}
+            />
+          )}
+
+          <div className="text-center text-xs text-muted-foreground pt-4 border-t">
+            <p>Shared on {data?.created_at ? new Date(data.created_at).toLocaleString() : 'N/A'}</p>
+            <p>Views: {data?.view_count || 0} | Expires: {data?.expires_at ? new Date(data.expires_at).toLocaleDateString() : 'N/A'}</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Root App with Routing
+function AppRouter() {
+  return (
+    <Routes>
+      <Route path="/" element={<App />} />
+      <Route path="/shared/:shareId" element={<SharedView />} />
+    </Routes>
+  );
+}
+
+export default AppRouter;
