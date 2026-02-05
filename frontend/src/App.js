@@ -878,11 +878,11 @@ function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, 
             onClick={onLogin} 
             variant="outline" 
             size="default" 
-            className="w-full h-11 gap-2" 
+            className="w-full h-11 gap-2 text-muted-foreground" 
             data-testid="export-gsheets-btn"
           >
-            <ExternalLink className="h-4 w-4" />
-            {user ? 'Export to Google Sheets' : 'Login for Google Sheets'}
+            <Copy className="h-4 w-4" />
+            Copy to Google Sheets (Use Copy buttons above)
           </Button>
         </div>
       </div>
