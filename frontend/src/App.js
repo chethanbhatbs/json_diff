@@ -1615,14 +1615,21 @@ function App() {
     h1 { font-size: 18px; margin-bottom: 5px; }
     h2 { font-size: 14px; margin-top: 20px; border-bottom: 1px solid #333; padding-bottom: 5px; page-break-before: auto; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 20px; page-break-inside: auto; }
-    th, td { border: 1px solid #333; padding: 5px; text-align: left; font-size: 10px; }
-    th { background-color: #f0f0f0; font-weight: bold; }
+    th, td { border: 1px solid #333; padding: 6px; text-align: left; font-size: 10px; vertical-align: top; }
+    th { background-color: #4472C4; color: white; font-weight: bold; }
     tr { page-break-inside: avoid; page-break-after: auto; }
     .summary { display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }
-    .stat { text-align: center; padding: 8px; border: 1px solid #ccc; min-width: 80px; }
-    .stat-value { font-size: 18px; font-weight: bold; }
-    .stat-label { font-size: 9px; }
+    .stat { text-align: center; padding: 10px 15px; border: 1px solid #ccc; min-width: 80px; border-radius: 4px; }
+    .stat-value { font-size: 20px; font-weight: bold; }
+    .stat-label { font-size: 9px; color: #666; }
     .file-header { font-size: 12px; color: #666; margin-top: 10px; margin-bottom: 5px; }
+    .word-added { background-color: #C6EFCE; padding: 1px 3px; border-radius: 2px; }
+    .word-removed { background-color: #FFC7CE; padding: 1px 3px; border-radius: 2px; text-decoration: line-through; }
+    .same-row { background-color: #E8F5E9; }
+    .modified-row { background-color: #FFF8E1; }
+    .added-row { background-color: #E3F2FD; }
+    .removed-row { background-color: #FFEBEE; }
+    pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: 'Courier New', monospace; font-size: 9px; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .page-break { page-break-before: always; }
@@ -1631,43 +1638,51 @@ function App() {
 </head>
 <body>
   <h1>JSON Comparison Report</h1>
-  <p>Generated: ${new Date().toLocaleString()}</p>
+  <p>Generated: ${new Date().toLocaleString()} | Output: ${outputFilename || 'comparison_report'}</p>
   
   <div class="summary">
-    <div class="stat"><div class="stat-value">${summary.file1_tools}</div><div class="stat-label">File 1</div></div>
-    <div class="stat"><div class="stat-value">${summary.file2_tools}</div><div class="stat-label">File 2</div></div>
-    <div class="stat"><div class="stat-value">${summary.same_count}</div><div class="stat-label">Same</div></div>
-    <div class="stat"><div class="stat-value">${summary.modified_count}</div><div class="stat-label">Modified</div></div>
-    <div class="stat"><div class="stat-value">${summary.added_count}</div><div class="stat-label">Added</div></div>
-    <div class="stat"><div class="stat-value">${summary.removed_count}</div><div class="stat-label">Removed</div></div>
+    <div class="stat"><div class="stat-value">${summary.file1_tools}</div><div class="stat-label">File 1 Tools</div></div>
+    <div class="stat"><div class="stat-value">${summary.file2_tools}</div><div class="stat-label">File 2 Tools</div></div>
+    <div class="stat" style="background:#E8F5E9"><div class="stat-value">${summary.same_count}</div><div class="stat-label">Same</div></div>
+    <div class="stat" style="background:#FFF8E1"><div class="stat-value">${summary.modified_count}</div><div class="stat-label">Modified</div></div>
+    <div class="stat" style="background:#E3F2FD"><div class="stat-value">${summary.added_count}</div><div class="stat-label">Added</div></div>
+    <div class="stat" style="background:#FFEBEE"><div class="stat-value">${summary.removed_count}</div><div class="stat-label">Removed</div></div>
   </div>
 
   <h2>Comparison Summary</h2>
   <table>
-    <tr><th>Tool Name</th><th>In File1</th><th>In File2</th><th>Same?</th><th>Notes</th></tr>
-    ${previewData.comparison?.map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.in_file1 ? '✓' : '✗'}</td><td>${r.in_file2 ? '✓' : '✗'}</td><td>${r.desc_same === true ? '✓' : r.desc_same === false ? '✗' : 'N/A'}</td><td>${r.notes}</td></tr>`).join('')}
+    <tr><th>Tool Name</th><th style="width:60px">In File1</th><th style="width:60px">In File2</th><th style="width:60px">Same?</th><th>Notes</th></tr>
+    ${previewData.comparison?.map(r => `<tr class="${r.status}-row"><td><strong>${r.name}</strong></td><td style="text-align:center">${r.in_file1 ? '✓' : '✗'}</td><td style="text-align:center">${r.in_file2 ? '✓' : '✗'}</td><td style="text-align:center">${r.desc_same === true ? '✓' : r.desc_same === false ? '✗' : 'N/A'}</td><td>${r.notes}</td></tr>`).join('')}
   </table>
 
-  <h2>Differences</h2>
+  <h2>Differences (with Word-Level Highlighting)</h2>
   <table>
-    <tr><th>Tool Name</th><th>Change Type</th></tr>
-    ${previewData.differences?.map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.change_type}</td></tr>`).join('') || '<tr><td colspan="2">No differences</td></tr>'}
+    <tr><th style="width:150px">Tool Name</th><th>File1 Description</th><th>File2 Description</th><th style="width:100px">Change Type</th></tr>
+    ${previewData.differences?.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:20px">No differences found - all items are identical</td></tr>' : 
+      previewData.differences?.map(r => `<tr>
+        <td><strong>${r.name}</strong></td>
+        <td>${r.file1_diff?.map(d => d.type === 'removed' ? `<span class="word-removed">${d.text}</span>` : d.text).join(' ') || r.file1_desc || '-'}</td>
+        <td>${r.file2_diff?.map(d => d.type === 'added' ? `<span class="word-added">${d.text}</span>` : d.text).join(' ') || r.file2_desc || '-'}</td>
+        <td>${r.change_type}</td>
+      </tr>`).join('')}
   </table>
 
   <div class="page-break"></div>
   
   <h2>File 1 Tools (${previewData.file1_tools?.length || 0})</h2>
-  <div class="file-header">File: ${file1?.name || 'file1.json'}</div>
+  <div class="file-header">File: ${file1?.filename || 'file1.json'}</div>
   <table>
     <tr><th style="width:30px">#</th><th style="width:150px">Tool Name</th><th>Description</th></tr>
-    ${previewData.file1_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td>${r.description || '-'}</td></tr>`).join('')}
+    ${previewData.file1_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td><pre>${r.description || '-'}</pre></td></tr>`).join('')}
   </table>
 
+  <div class="page-break"></div>
+
   <h2>File 2 Tools (${previewData.file2_tools?.length || 0})</h2>
-  <div class="file-header">File: ${file2?.name || 'file2.json'}</div>
+  <div class="file-header">File: ${file2?.filename || 'file2.json'}</div>
   <table>
     <tr><th style="width:30px">#</th><th style="width:150px">Tool Name</th><th>Description</th></tr>
-    ${previewData.file2_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td>${r.description || '-'}</td></tr>`).join('')}
+    ${previewData.file2_tools?.map(r => `<tr><td>${r.index}</td><td><strong>${r.name}</strong></td><td><pre>${r.description || '-'}</pre></td></tr>`).join('')}
   </table>
   
   <script>window.onload = function() { window.print(); }</script>
@@ -1677,7 +1692,7 @@ function App() {
     printWindow.document.write(html);
     printWindow.document.close();
     toast.success('Print preview opened');
-  }, [previewData, summary, file1, file2]);
+  }, [previewData, summary, file1, file2, outputFilename]);
 
   const handleGoogleSheetsLogin = useCallback(() => {
     if (user) {
