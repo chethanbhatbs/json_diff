@@ -1896,15 +1896,30 @@ function App() {
                   <Input 
                     value={shareDialog.shareUrl} 
                     readOnly 
-                    className="text-xs font-mono"
+                    className="text-xs font-mono bg-background"
                     onClick={(e) => e.target.select()}
                   />
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(shareDialog.shareUrl);
-                      toast.success('Link copied to clipboard!');
+                    className="bg-background border-border"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(shareDialog.shareUrl);
+                        toast.success('Link copied to clipboard!');
+                      } catch (err) {
+                        // Fallback for older browsers
+                        const textarea = document.createElement('textarea');
+                        textarea.value = shareDialog.shareUrl;
+                        textarea.style.position = 'fixed';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        textarea.focus();
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        toast.success('Link copied to clipboard!');
+                      }
                     }}
                   >
                     <Copy className="h-4 w-4" />
