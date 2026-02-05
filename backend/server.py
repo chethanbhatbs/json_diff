@@ -646,7 +646,7 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
             "name": name,
             "in_file1": in_file1,
             "in_file2": in_file2,
-            "desc_same": desc_same if not whitespace_only else False,
+            "desc_same": desc_same,
             "notes": notes,
             "status": status
         })
