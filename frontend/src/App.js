@@ -923,11 +923,10 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory 
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden" data-testid="history-panel">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-6 py-4 border-b bg-muted/30 hover:bg-muted/50 transition-colors"
+      <div
+        className="w-full flex items-center justify-between px-6 py-4 border-b bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClick={() => setIsOpen(!isOpen)}>
           <History className="h-4 w-4" />
           <span className="text-sm font-semibold uppercase tracking-wider">History</span>
           <Badge variant="secondary" className="text-xs">{history.length}</Badge>
@@ -942,9 +941,11 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory 
             <Trash2 className="h-3 w-3 mr-1" />
             {confirmClearAll ? 'Click to Confirm' : 'Clear All'}
           </Button>
-          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <button onClick={() => setIsOpen(!isOpen)} className="p-1 hover:bg-muted rounded">
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
         </div>
-      </button>
+      </div>
       {isOpen && (
         <ScrollArea className="h-[220px] animate-fade-in">
           <div className="p-3 space-y-2">
