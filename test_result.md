@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the JSON Comparison Tool's export and action buttons to verify they're all working."
+user_problem_statement: "Test the JSON Compare application's new UI layout after the layout fix. The app is at https://ui-alignment-12.preview.emergentagent.com"
 
 frontend:
   - task: "File Upload and Comparison"
