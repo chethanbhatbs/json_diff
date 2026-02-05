@@ -651,25 +651,30 @@ def create_excel_comparison(tools1: List[Dict], tools2: List[Dict],
         })
         
         # Differences with word-level diff
-        desc1 = tools1_dict.get(name, "")
-        desc2 = tools2_dict.get(name, "")
-        if desc1.strip() != desc2.strip():
-            if not desc1:
+        # Use normalized comparison (same whitespace normalization as word diff)
+        desc1_raw = tools1_dict.get(name, "")
+        desc2_raw = tools2_dict.get(name, "")
+        desc1_norm = ' '.join(desc1_raw.split()) if desc1_raw else ""
+        desc2_norm = ' '.join(desc2_raw.split()) if desc2_raw else ""
+        
+        # Only add to differences if normalized texts differ (actual word changes)
+        if desc1_norm != desc2_norm:
+            if not desc1_norm:
                 change_type = "Added in File2"
                 diff1 = []
-                diff2 = [{"text": desc2, "type": "added"}]
-            elif not desc2:
+                diff2 = [{"text": desc2_norm, "type": "added"}]
+            elif not desc2_norm:
                 change_type = "Removed from File2"
-                diff1 = [{"text": desc1, "type": "removed"}]
+                diff1 = [{"text": desc1_norm, "type": "removed"}]
                 diff2 = []
             else:
                 change_type = "Modified"
-                diff1, diff2 = get_word_diff(desc1, desc2)
+                diff1, diff2 = get_word_diff(desc1_raw, desc2_raw)
             
             differences_data.append({
                 "name": name,
-                "file1_desc": desc1[:500] + "..." if len(desc1) > 500 else desc1,
-                "file2_desc": desc2[:500] + "..." if len(desc2) > 500 else desc2,
+                "file1_desc": desc1_norm[:500] + "..." if len(desc1_norm) > 500 else desc1_norm,
+                "file2_desc": desc2_norm[:500] + "..." if len(desc2_norm) > 500 else desc2_norm,
                 "file1_diff": diff1,
                 "file2_diff": diff2,
                 "change_type": change_type
