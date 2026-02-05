@@ -804,8 +804,31 @@ function ExportPanel({ onDownload, onExportHtml, onExportPdf, onPrint, onLogin, 
 // History Panel with full data
 function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null); // null or item.id
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   
   if (history.length === 0) return null;
+
+  const handleClearAll = () => {
+    if (confirmClearAll) {
+      onClearHistory();
+      setConfirmClearAll(false);
+    } else {
+      setConfirmClearAll(true);
+      setTimeout(() => setConfirmClearAll(false), 3000); // Reset after 3 seconds
+    }
+  };
+
+  const handleDelete = (e, itemId) => {
+    e.stopPropagation();
+    if (confirmDelete === itemId) {
+      onDeleteHistory(itemId);
+      setConfirmDelete(null);
+    } else {
+      setConfirmDelete(itemId);
+      setTimeout(() => setConfirmDelete(null), 3000); // Reset after 3 seconds
+    }
+  };
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden" data-testid="history-panel">
@@ -820,14 +843,15 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory 
         </div>
         <div className="flex items-center gap-2">
           <Button 
-            variant="ghost" 
+            variant={confirmClearAll ? "destructive" : "ghost"}
             size="sm" 
-            onClick={(e) => { e.stopPropagation(); onClearHistory(); }} 
-            className="h-7 px-2 text-xs hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); handleClearAll(); }} 
+            className="h-7 px-2 text-xs"
           >
-            <Trash2 className="h-3 w-3 mr-1" />Clear All
+            <Trash2 className="h-3 w-3 mr-1" />
+            {confirmClearAll ? 'Click to Confirm' : 'Clear All'}
           </Button>
-          <Terminal className={cn("h-4 w-4 transition-transform", isOpen ? "rotate-90" : "")} />
+          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </button>
       {isOpen && (
@@ -836,21 +860,29 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory 
           {history.map((item, idx) => (
             <div 
               key={item.id} 
-              className="p-3 rounded border hover:bg-zinc-50 cursor-pointer transition-colors group"
-              onClick={() => onLoadHistory(item)}
+              className="p-3 rounded border bg-card hover:bg-accent/50 transition-colors group"
               data-testid={`history-item-${idx}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium truncate flex-1">{item.file1_name} vs {item.file2_name}</span>
+                <span className="text-sm font-medium truncate flex-1 text-foreground">{item.file1_name} vs {item.file2_name}</span>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-[10px]">{item.compare_type}</Badge>
                   <Button 
-                    variant="ghost" 
+                    variant="outline" 
                     size="sm" 
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => { e.stopPropagation(); onDeleteHistory(item.id); }}
+                    className="h-6 px-2 text-xs gap-1"
+                    onClick={(e) => { e.stopPropagation(); onLoadHistory(item); }}
                   >
-                    <X className="h-3 w-3" />
+                    <FolderOpen className="h-3 w-3" />
+                    Open
+                  </Button>
+                  <Button 
+                    variant={confirmDelete === item.id ? "destructive" : "ghost"}
+                    size="sm" 
+                    className="h-6 px-2 text-xs gap-1"
+                    onClick={(e) => handleDelete(e, item.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    {confirmDelete === item.id ? 'Confirm?' : 'Delete'}
                   </Button>
                 </div>
               </div>
@@ -860,10 +892,10 @@ function HistoryPanel({ history, onLoadHistory, onClearHistory, onDeleteHistory 
                   <span>{new Date(item.timestamp).toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-green-600">{item.same_count} same</span>
-                  <span className="text-yellow-600">{item.modified_count} mod</span>
-                  <span className="text-blue-600">{item.added_count} add</span>
-                  <span className="text-red-600">{item.removed_count} rem</span>
+                  <span className="text-green-600 dark:text-green-400">{item.same_count} same</span>
+                  <span className="text-yellow-600 dark:text-yellow-400">{item.modified_count} mod</span>
+                  <span className="text-blue-600 dark:text-blue-400">{item.added_count} add</span>
+                  <span className="text-red-600 dark:text-red-400">{item.removed_count} rem</span>
                 </div>
               </div>
             </div>
