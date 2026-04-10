@@ -52,6 +52,10 @@ The API server starts at `http://localhost:8000`. API docs at `http://localhost:
 
 ```bash
 cd frontend
+
+# Create .env file pointing to the backend
+echo "REACT_APP_BACKEND_URL=http://localhost:8000" > .env
+
 npm install --legacy-peer-deps
 npm install ajv@8 --legacy-peer-deps   # Required for Node.js v22+
 npm start
@@ -68,7 +72,7 @@ Open two terminals:
 cd backend && python3 -m venv venv && source venv/bin/activate && pip install fastapi uvicorn python-dotenv pydantic openpyxl motor httpx python-multipart requests && uvicorn server:app --host 0.0.0.0 --port 8000
 
 # Terminal 2 — Frontend
-cd frontend && npm install --legacy-peer-deps && npm install ajv@8 --legacy-peer-deps && npm start
+cd frontend && echo "REACT_APP_BACKEND_URL=http://localhost:8000" > .env && npm install --legacy-peer-deps && npm install ajv@8 --legacy-peer-deps && npm start
 ```
 
 Then open **http://localhost:3000** in your browser.
