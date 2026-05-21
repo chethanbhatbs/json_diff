@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: json-diff-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: json_diff
+      - key: REACT_APP_BACKEND_URL
+        sync: false

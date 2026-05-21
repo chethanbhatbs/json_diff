@@ -1,107 +1,67 @@
-# JSON Diff
+<h1 align="center">JSON Diff</h1>
 
-A full-stack web app to compare and diff two JSON objects side-by-side with syntax highlighting, nested object expansion, and difference detection.
+<p align="center">
+  Compare two JSON files side-by-side — color-coded diffs, nested expansion, share links, Excel export.<br>
+  <sub>React · FastAPI · MongoDB</sub>
+</p>
 
-## Features
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/🌐_Live_Demo-coming_soon-blue?style=for-the-badge" alt="Live Demo" /></a>
+  <a href="DEPLOY.md"><img src="https://img.shields.io/badge/⚡_Deploy_your_own-Free_tier-2ea44f?style=for-the-badge" alt="Deploy" /></a>
+</p>
 
-- Upload or paste two JSON files
-- Side-by-side diff view with color-coded additions, deletions, and modifications
-- Nested object/array expansion
+> **Live URL:** _add your Vercel URL here after deploying — see [DEPLOY.md](DEPLOY.md)_
+
+---
+
+## What it does
+
+- Paste or upload two JSONs (up to 30 MB) → see a side-by-side diff
+- Color-coded additions, deletions, modifications
+- Collapsible nested objects and arrays
 - Syntax highlighting
-- Handles large JSON files (up to 30MB)
-- Shareable comparison links
-- Excel export of diff results
-- Clean, modern UI built with Shadcn/Radix components
+- **Share links** — comparisons live at a URL anyone can open
+- **Excel export** — diff result as a styled `.xlsx`
+- **History** — your past comparisons saved and searchable
 
-## Tech Stack
+---
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React, Radix UI / Shadcn, Tailwind CSS |
-| Backend | Python, FastAPI, Uvicorn |
-| Testing | pytest, requests |
-
-## Prerequisites
-
-- **Node.js** v18+ and npm
-- **Python** 3.9+
-- **pip**
-
-## Local Setup
-
-### 1. Clone the repo
+## Run it locally
 
 ```bash
-git clone https://github.com/chethanbhatbs/json_diff.git
-cd json_diff
-```
-
-### 2. Backend
-
-```bash
+# Backend (port 8001)
 cd backend
-python3 -m venv venv
-source venv/bin/activate        # On Windows: venv\Scripts\activate
-pip install fastapi uvicorn python-dotenv pydantic openpyxl motor httpx python-multipart requests
-uvicorn server:app --host 0.0.0.0 --port 8000
-```
+cp .env.example .env       # edit MONGO_URL — pointing to local Mongo or Atlas
+pip install -r requirements.txt
+uvicorn server:app --reload --port 8001
 
-The API server starts at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
-
-### 3. Frontend
-
-```bash
+# Frontend (port 3000) — in another terminal
 cd frontend
-
-# Create .env file pointing to the backend
-echo "REACT_APP_BACKEND_URL=http://localhost:8000" > .env
-
+cp .env.example .env       # REACT_APP_BACKEND_URL=http://localhost:8001
 npm install --legacy-peer-deps
-npm install ajv@8 --legacy-peer-deps   # Required for Node.js v22+
 npm start
 ```
 
-The app opens at `http://localhost:3000`.
+Open http://localhost:3000.
 
-### 4. Run both together
+---
 
-Open two terminals:
+## Deploy your own
 
-```bash
-# Terminal 1 — Backend
-cd backend && python3 -m venv venv && source venv/bin/activate && pip install fastapi uvicorn python-dotenv pydantic openpyxl motor httpx python-multipart requests && uvicorn server:app --host 0.0.0.0 --port 8000
+Full step-by-step in **[DEPLOY.md](DEPLOY.md)** — MongoDB Atlas + Render + Vercel, all free tier, ~20 minutes.
 
-# Terminal 2 — Frontend
-cd frontend && echo "REACT_APP_BACKEND_URL=http://localhost:8000" > .env && npm install --legacy-peer-deps && npm install ajv@8 --legacy-peer-deps && npm start
-```
+---
 
-Then open **http://localhost:3000** in your browser.
+## Stack
 
-## Testing
+| Layer | Tech |
+|---|---|
+| Frontend | React 18, Radix UI / Shadcn, Tailwind CSS |
+| Backend | FastAPI, Uvicorn, Motor (async MongoDB) |
+| Database | MongoDB (Atlas in production) |
+| Diff engine | Python `difflib` for word/text diffs; custom JSON walker for structural diffs |
+| Export | `openpyxl` for styled Excel output |
 
-```bash
-# Backend tests (server must be running on port 8000)
-cd backend
-source venv/bin/activate
-REACT_APP_BACKEND_URL=http://localhost:8000 python -m pytest tests/ -v
-```
+---
 
-## Project Structure
-
-```
-json_diff/
-├── frontend/          # React app (Radix UI, Tailwind)
-│   ├── src/
-│   └── package.json
-├── backend/           # Python API server
-│   ├── server.py
-│   ├── requirements.txt
-│   └── tests/
-├── test_data_file1.json   # Sample test data
-├── test_data_file2.json
-└── README.md
-```
-
-## License
-
-MIT
+<p align="center"><sub>Built by <a href="https://github.com/chethanbhatbs">Chethan Bhat</a></sub></p>
