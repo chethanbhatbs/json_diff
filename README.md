@@ -64,4 +64,6 @@ Full step-by-step in **[DEPLOY.md](DEPLOY.md)** — MongoDB Atlas + Render + Ver
 
 ---
 
-<p align="center"><sub>Built by <a href="https://github.com/chethanbhatbs">Chethan Bhat</a></sub></p>
+<p align="center">
+  <sub>Built with <a href="https://emergent.sh">Emergent</a> + <a href="https://claude.ai/code">Claude Code</a> · refined by hand</sub>
+</p>
